@@ -1,0 +1,32 @@
+# Implementation Checklist: Centralized Attendance Management Backend
+
+- [X] Phase 1: Environment & Directory Setup (Git repo initialized, dependencies identified)
+- [X] Phase 2: Configuration & Database Foundation
+  - `app/config.py`: Settings with pydantic-settings
+  - `app/database.py`: AsyncMongoClient connection lifecycle, index creation
+  - `app/utils/security.py`: Password hashing & JWT creation/verification
+  - `app/utils/time_utils.py`: UTC/Timezone helpers & policy week math
+- [X] Phase 3: Domain Models & Pydantic Schemas
+  - `app/schemas/auth.py`, `employee.py`, `attendance.py`, `report.py`, `policy.py`
+- [X] Phase 4: Core Services
+  - `app/services/auth_service.py`: Authentication & user management
+  - `app/services/employee_service.py`: Employee CRUD & status management
+  - `app/services/attendance_service.py`: Check-in, check-out, validation
+  - `app/services/policy_service.py`: 3-day / 15-hour compliance rules
+  - `app/services/report_service.py`: Single central report aggregation (daily, weekly, monthly, yearly, custom)
+  - `app/services/email_service.py`: Configurable email sending with idempotency & error logging
+- [ ] Phase 5: FastAPI Routers & Application Wiring
+  - `app/dependencies.py`: Auth & role dependencies
+  - `app/routers/`: auth, employees, attendance, reports, violations, health
+  - `app/scheduler/jobs.py`: APScheduler compliance jobs
+  - `app/main.py`: Lifespan, exception handlers, CORS, scheduler startup/shutdown
+- [ ] Phase 6: Scripts & Deployment
+  - `scripts/seed_data.py`: Seed 10+ employees with realistic attendance scenarios
+  - `scripts/create_admin.py`: Secure CLI admin bootstrap
+  - `Dockerfile`, `compose.yaml`, `.env.example`, `.gitignore`
+  - `.github/workflows/ci.yml`
+- [ ] Phase 7: Verification & Quality Assurance
+  - Unit & integration test suites (`pytest`, `httpx`)
+  - Code quality checks (`ruff`)
+  - Security audit (`bandit`, `pip-audit`)
+- [ ] Phase 8: Documentation (`README.md`)
