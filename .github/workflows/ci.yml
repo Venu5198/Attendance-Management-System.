@@ -198,6 +198,9 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v4
 
+      - name: Create .env from .env.example
+        run: cp .env.example .env
+
       - name: Validate Docker Compose Configuration
         run: docker compose config
 
