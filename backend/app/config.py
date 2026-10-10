@@ -3,7 +3,7 @@
 from functools import lru_cache
 from typing import Literal
 
-from pydantic import Field
+from pydantic import AliasChoices, Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -30,8 +30,16 @@ class Settings(BaseSettings):
         return [origin.strip() for origin in self.CORS_ORIGINS.split(",") if origin.strip()]
 
     # Database
-    MONGODB_URI: str = Field(default="mongodb://localhost:27018", description="MongoDB connection URI")
-    MONGODB_DATABASE: str = Field(default="attendance_db", description="Database name")
+    MONGODB_URI: str = Field(
+        default="mongodb://localhost:27017",
+        validation_alias=AliasChoices("MONGODB_URI", "MONGO_URI"),
+        description="MongoDB connection URI",
+    )
+    MONGODB_DATABASE: str = Field(
+        default="attendance_db",
+        validation_alias=AliasChoices("MONGODB_DATABASE", "MONGO_DB"),
+        description="Database name",
+    )
 
     # Security & JWT
     JWT_SECRET_KEY: str = Field(default="test-secret-key-for-development-attendance-backend-super-secret")

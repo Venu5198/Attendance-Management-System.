@@ -1,0 +1,94 @@
+services:
+  mongodb:
+    image: mongo:7.0
+    container_name: attendance_mongodb
+    restart: unless-stopped
+    ports:
+      - "27017:27017"
+    environment:
+      MONGO_INITDB_DATABASE: ${MONGO_DB:-attendance_db}
+    volumes:
+      - mongodb_data:/data/db
+    networks:
+      - attendance-network
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 5s
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: attendance_backend
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    depends_on:
+      mongodb:
+        condition: service_healthy
+    networks:
+      - attendance-network
+    env_file:
+      - .env
+    environment:
+      - MONGO_URI=${MONGO_URI:-mongodb://mongodb:27017}
+      - MONGO_DB=${MONGO_DB:-attendance_db}
+      - MONGODB_URI=${MONGO_URI:-mongodb://mongodb:27017}
+      - MONGODB_DATABASE=${MONGO_DB:-attendance_db}
+      - JWT_SECRET_KEY=${JWT_SECRET_KEY:-dev-secret-key-for-docker-compose-attendance-system-32ch!}
+      - JWT_ALGORITHM=${JWT_ALGORITHM:-HS256}
+      - ACCESS_TOKEN_EXPIRE_MINUTES=${ACCESS_TOKEN_EXPIRE_MINUTES:-480}
+      - COMPANY_TIMEZONE=${COMPANY_TIMEZONE:-Asia/Kolkata}
+      - POLICY_REQUIRED_DAYS=${POLICY_REQUIRED_DAYS:-3}
+      - POLICY_REQUIRED_HOURS=${POLICY_REQUIRED_HOURS:-15}
+      - EMAIL_PROVIDER=${EMAIL_PROVIDER:-mock}
+      - EMAIL_FROM=${EMAIL_FROM:-attendance-alerts@company.com}
+      - EMAIL_FROM_NAME=${EMAIL_FROM_NAME:-Attendance Management System}
+      - SMTP_HOST=${SMTP_HOST:-smtp.mailtrap.io}
+      - SMTP_PORT=${SMTP_PORT:-587}
+      - SMTP_USERNAME=${SMTP_USERNAME:-}
+      - SMTP_PASSWORD=${SMTP_PASSWORD:-}
+      - SMTP_USE_TLS=${SMTP_USE_TLS:-true}
+      - SCHEDULER_ENABLED=${SCHEDULER_ENABLED:-false}
+      - ATTENDANCE_CHECK_SCHEDULE=${ATTENDANCE_CHECK_SCHEDULE:-0 2 * * 1}
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        VITE_API_BASE_URL: ${VITE_API_BASE_URL:-http://localhost:8000/api/v1}
+    container_name: attendance_frontend
+    restart: unless-stopped
+    ports:
+      - "5173:80"
+    depends_on:
+      backend:
+        condition: service_healthy
+    networks:
+      - attendance-network
+    healthcheck:
+      test: ["CMD-SHELL", "wget --spider -q http://127.0.0.1:80/ || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 5s
+
+networks:
+  attendance-network:
+    name: attendance-network
+    driver: bridge
+
+volumes:
+  mongodb_data:
+    name: attendance_mongodb_data
+    driver: local

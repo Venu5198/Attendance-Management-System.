@@ -1,9 +1,9 @@
-"""MongoDB database connection management and index initialization."""
-
+import asyncio
 import logging
 
 from pymongo import ASCENDING, DESCENDING, AsyncMongoClient
 from pymongo.asynchronous.database import AsyncDatabase
+from pymongo.uri_parser import parse_uri
 
 from app.config import get_settings
 
@@ -29,20 +29,42 @@ async def connect_to_mongo() -> None:
     """Initialize AsyncMongoClient, verify connection, and ensure collection indexes."""
     settings = get_settings()
     logger.info("Connecting to MongoDB at %s", settings.MONGODB_URI)
-    try:
-        db_manager.client = AsyncMongoClient(
-            settings.MONGODB_URI,
-            serverSelectionTimeoutMS=5000,
-        )
-        # Verify connection
-        await db_manager.client.admin.command("ping")
-        db_manager.db = db_manager.client[settings.MONGODB_DATABASE]
-        logger.info("Successfully connected to MongoDB database: %s", settings.MONGODB_DATABASE)
 
-        await ensure_indexes(db_manager.db)
-    except Exception as exc:
-        logger.error("Failed to connect to MongoDB: %s", exc)
-        raise exc
+    db_name = settings.MONGODB_DATABASE
+    try:
+        parsed = parse_uri(settings.MONGODB_URI)
+        if parsed.get("database"):
+            db_name = parsed["database"]
+    except Exception:
+        pass
+
+    max_retries = 10
+    retry_delay = 2
+    for attempt in range(1, max_retries + 1):
+        try:
+            db_manager.client = AsyncMongoClient(
+                settings.MONGODB_URI,
+                serverSelectionTimeoutMS=5000,
+            )
+            # Verify connection
+            await db_manager.client.admin.command("ping")
+            db_manager.db = db_manager.client[db_name]
+            logger.info("Successfully connected to MongoDB database: %s", db_name)
+
+            await ensure_indexes(db_manager.db)
+            break
+        except Exception as exc:
+            if attempt == max_retries:
+                logger.error("Failed to connect to MongoDB after %d attempts: %s", max_retries, exc)
+                raise exc
+            logger.warning(
+                "MongoDB not ready yet (attempt %d/%d): %s. Retrying in %ds...",
+                attempt,
+                max_retries,
+                exc,
+                retry_delay,
+            )
+            await asyncio.sleep(retry_delay)
 
 
 async def close_mongo_connection() -> None:
