@@ -262,9 +262,9 @@ export const LeavesPage: React.FC = () => {
       {/* Header */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900">Leaves & Company Calendar</h1>
+          <h1 className="text-2xl font-bold text-slate-900">Leaves & Policy Exemptions</h1>
           <p className="text-sm text-slate-500">
-            Manage employee leaves and company holidays that dynamically scale weekly policy targets
+            Submit time-off requests to exempt dates from the 3-day / 15-hour in-office policy
           </p>
         </div>
 
