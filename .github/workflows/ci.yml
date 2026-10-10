@@ -1,0 +1,211 @@
+name: Continuous Integration & Automated Testing Pipeline
+
+on:
+  push:
+    branches: [ master, main ]
+  pull_request:
+    branches: [ master, main ]
+
+jobs:
+  # ============================================================
+  # 1. Backend Testing & Static Analysis (Unit, Integration, SAST)
+  # ============================================================
+  backend-ci:
+    name: Backend Lint, Security & Tests
+    runs-on: ubuntu-latest
+
+    services:
+      mongodb:
+        image: mongo:7.0
+        ports:
+          - 27017:27017
+        options: >-
+          --health-cmd "mongosh --eval 'db.adminCommand(\"ping\")'"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    env:
+      MONGO_URI: mongodb://localhost:27017
+      MONGO_DB: attendance_test_db
+      MONGODB_URI: mongodb://localhost:27017
+      MONGODB_DATABASE: attendance_test_db
+      JWT_SECRET_KEY: ci-test-secret-key-32-chars-long-minimum!
+      JWT_ALGORITHM: HS256
+      ACCESS_TOKEN_EXPIRE_MINUTES: 60
+      COMPANY_TIMEZONE: Asia/Kolkata
+      POLICY_REQUIRED_DAYS: 3
+      POLICY_REQUIRED_HOURS: 15
+      EMAIL_PROVIDER: mock
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: 'pip'
+
+      - name: Install Python Dependencies
+        working-directory: ./backend
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Lint Code with Ruff
+        working-directory: ./backend
+        run: |
+          ruff check app/
+
+      - name: Static Application Security Testing (SAST) with Bandit
+        working-directory: ./backend
+        run: |
+          bandit -r app/ -ll
+
+      - name: Run Pytest Unit & Integration Suite
+        working-directory: ./backend
+        run: |
+          pytest -v --cov=app --cov-report=term-missing tests/
+
+  # ============================================================
+  # 2. Frontend Testing & Static Analysis (Lint, Build, Vitest)
+  # ============================================================
+  frontend-ci:
+    name: Frontend Lint, Type-Check & Unit Tests
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+          cache-dependency-path: './frontend/package-lock.json'
+
+      - name: Install Frontend Dependencies
+        working-directory: ./frontend
+        run: npm ci
+
+      - name: Fast Lint with Oxlint
+        working-directory: ./frontend
+        run: npm run lint
+
+      - name: TypeScript Strict Check & Production Bundle Build
+        working-directory: ./frontend
+        run: npm run build
+
+      - name: Run Vitest Component Unit Tests
+        working-directory: ./frontend
+        run: npm test
+
+  # ============================================================
+  # 3. End-to-End Testing with Playwright
+  # ============================================================
+  e2e-ci:
+    name: End-to-End Browser Tests (Playwright)
+    needs: [backend-ci, frontend-ci]
+    runs-on: ubuntu-latest
+
+    services:
+      mongodb:
+        image: mongo:7.0
+        ports:
+          - 27017:27017
+        options: >-
+          --health-cmd "mongosh --eval 'db.adminCommand(\"ping\")'"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    env:
+      MONGO_URI: mongodb://localhost:27017
+      MONGO_DB: attendance_e2e_db
+      MONGODB_URI: mongodb://localhost:27017
+      MONGODB_DATABASE: attendance_e2e_db
+      JWT_SECRET_KEY: ci-test-secret-key-32-chars-long-minimum!
+      JWT_ALGORITHM: HS256
+      EMAIL_PROVIDER: mock
+      VITE_API_BASE_URL: http://localhost:8000/api/v1
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: 'pip'
+
+      - name: Set up Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+          cache-dependency-path: './frontend/package-lock.json'
+
+      - name: Install Dependencies
+        run: |
+          cd backend && pip install -r requirements.txt
+          cd ../frontend && npm ci
+
+      - name: Seed E2E Database
+        working-directory: ./backend
+        run: |
+          python scripts/seed_data.py
+
+      - name: Install Playwright Browsers & OS Dependencies
+        working-directory: ./frontend
+        run: |
+          npx playwright install --with-deps chromium
+
+      - name: Start Backend API Server
+        run: |
+          cd backend && uvicorn app.main:app --host 127.0.0.1 --port 8000 &
+          sleep 5
+          curl -f http://127.0.0.1:8000/health
+
+      - name: Start Frontend Preview Server
+        run: |
+          cd frontend
+          npm run build
+          npx vite preview --port 5173 --host 127.0.0.1 &
+          sleep 5
+
+      - name: Run Playwright E2E Suite
+        working-directory: ./frontend
+        env:
+          PLAYWRIGHT_TEST_BASE_URL: http://127.0.0.1:5173
+        run: |
+          npm run test:e2e
+
+      - name: Upload Playwright Artifacts on Failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: frontend/playwright-report/
+          retention-days: 7
+
+  # ============================================================
+  # 4. Docker Compose Build Verification
+  # ============================================================
+  docker-build-ci:
+    name: Docker Images Build Verification
+    needs: [backend-ci, frontend-ci]
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Validate Docker Compose Configuration
+        run: docker compose config
+
+      - name: Build All Docker Services
+        run: docker compose build

@@ -66,6 +66,8 @@ export const LoginPage: React.FC = () => {
                 <User className="h-4 w-4" />
               </span>
               <input
+                id="username"
+                name="username"
                 type="text"
                 required
                 value={username}
@@ -85,6 +87,8 @@ export const LoginPage: React.FC = () => {
                 <Lock className="h-4 w-4" />
               </span>
               <input
+                id="password"
+                name="password"
                 type="password"
                 required
                 value={password}

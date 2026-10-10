@@ -11,7 +11,6 @@ from app.schemas.report import AttendanceReportResponse, EmailReportRequest, Rep
 from app.services.email_service import EmailService
 from app.services.report_service import ReportService
 
-
 router = APIRouter(prefix="/attendance", tags=["Reporting"])
 
 

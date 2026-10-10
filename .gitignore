@@ -38,6 +38,8 @@ htmlcov/
 coverage.xml
 coverage/
 *.cover
+test-results/
+playwright-report/
 
 # Node.js / Frontend
 node_modules/

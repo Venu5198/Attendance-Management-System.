@@ -76,3 +76,21 @@ def test_get_date_range_for_period():
     # Custom reversed error
     with pytest.raises(ValueError):
         get_date_range_for_period("custom", start_date=custom_e, end_date=custom_s)
+
+
+def test_get_week_boundaries_sunday():
+    """Verify that Sunday gives the correct Monday-Sunday range ending on that Sunday."""
+    sunday = date(2026, 10, 11)
+    mon, sun = get_week_boundaries(sunday)
+    assert mon == date(2026, 10, 5)
+    assert sun == date(2026, 10, 11)
+
+
+def test_get_week_boundaries_year_transition():
+    """Verify week calculation across New Year boundary (e.g. Dec 31 -> Jan 1)."""
+    # 2026-12-31 is a Thursday
+    dec_31 = date(2026, 12, 31)
+    mon, sun = get_week_boundaries(dec_31)
+    assert mon == date(2026, 12, 28)
+    assert sun == date(2027, 1, 3)
+
