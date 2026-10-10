@@ -32,14 +32,17 @@ class PolicyService:
         week_end: date,
         completed_records_in_week: list[dict],
         is_completed_week: bool | None = None,
+        approved_leave_days: int = 0,
     ) -> WeeklyComplianceResult:
         """
         Pure compliance evaluation for an employee over a specific Monday-to-Sunday week.
         Rules:
-        - office_days >= 3 AND total_office_hours >= 15 -> COMPLIANT
+        - If approved leave days exist, required days and hours are proportionally adjusted.
+        - If approved leave covers the weekly requirement, status is EXEMPT (or COMPLIANT if attended).
+        - office_days >= adjusted req_days AND total_office_hours >= adjusted req_hours -> COMPLIANT
         - If week is NOT completed:
-            - If already met (days >= 3 and hours >= 15) -> COMPLIANT
-            - Else -> PENDING (week is still ongoing, cannot confirm violation)
+            - If already met -> COMPLIANT
+            - Else -> PENDING
         - If week IS completed:
             - If conditions met -> COMPLIANT
             - Else -> NON_COMPLIANT with specific reasons
@@ -64,29 +67,41 @@ class PolicyService:
 
         office_days = len(distinct_attended_days)
         total_hours = round(total_seconds / 3600.0, 2)
-        req_days = self.settings.POLICY_REQUIRED_DAYS
-        req_hours = self.settings.POLICY_REQUIRED_HOURS
+        base_req_days = self.settings.POLICY_REQUIRED_DAYS
+        base_req_hours = self.settings.POLICY_REQUIRED_HOURS
 
-        days_met = office_days >= req_days
-        hours_met = total_hours >= req_hours
+        req_days = max(0, base_req_days - approved_leave_days)
+        daily_hours_target = base_req_hours / max(1, base_req_days)
+        req_hours = max(0.0, round(req_days * daily_hours_target, 2))
 
-        violation_reasons: list[str] = []
-        if not days_met:
-            violation_reasons.append(
-                f"Office attendance was {office_days} day(s), below the minimum required {req_days} days."
-            )
-        if not hours_met:
-            violation_reasons.append(
-                f"Accumulated office hours were {total_hours} hr(s), below the minimum required {req_hours} hours."
-            )
-
-        if days_met and hours_met:
-            status = ComplianceStatus.COMPLIANT
-            violation_reasons = []
-        elif not is_completed_week:
-            status = ComplianceStatus.PENDING
+        if approved_leave_days >= base_req_days or req_days == 0:
+            if office_days == 0 and total_hours == 0:
+                status = ComplianceStatus.EXEMPT
+                violation_reasons = []
+            else:
+                status = ComplianceStatus.COMPLIANT
+                violation_reasons = []
         else:
-            status = ComplianceStatus.NON_COMPLIANT
+            days_met = office_days >= req_days
+            hours_met = total_hours >= req_hours
+
+            violation_reasons: list[str] = []
+            if not days_met:
+                violation_reasons.append(
+                    f"Office attendance was {office_days} day(s), below the adjusted required {req_days} days (approved leave: {approved_leave_days} day(s))."
+                )
+            if not hours_met:
+                violation_reasons.append(
+                    f"Accumulated office hours were {total_hours} hr(s), below the adjusted required {req_hours} hours."
+                )
+
+            if days_met and hours_met:
+                status = ComplianceStatus.COMPLIANT
+                violation_reasons = []
+            elif not is_completed_week:
+                status = ComplianceStatus.PENDING
+            else:
+                status = ComplianceStatus.NON_COMPLIANT
 
         week_label = get_week_label(week_start, week_end)
 
@@ -100,6 +115,7 @@ class PolicyService:
             total_duration_seconds=total_seconds,
             required_days=req_days,
             required_hours=req_hours,
+            approved_leave_days=approved_leave_days,
             is_week_completed=is_completed_week,
             compliance_status=status,
             violation_reasons=violation_reasons,
@@ -127,8 +143,14 @@ class PolicyService:
         results: list[WeeklyComplianceResult] = []
         now = datetime.now(UTC)
 
+        from app.services.leave_service import LeaveService
+
+        leave_service = LeaveService(self.db)
+
         for emp in employees:
             eid = emp["employee_id"]
+            approved_leave_days = await leave_service.get_approved_leave_days_in_range(eid, week_start, week_end)
+
             # Fetch all attendance records for employee in week [week_start, week_end]
             records = await self.attendance.find(
                 {
@@ -145,6 +167,7 @@ class PolicyService:
                 week_start=week_start,
                 week_end=week_end,
                 completed_records_in_week=records,
+                approved_leave_days=approved_leave_days,
             )
             results.append(compliance)
 
@@ -164,6 +187,7 @@ class PolicyService:
                     "total_office_hours": compliance.total_office_hours,
                     "required_days": compliance.required_days,
                     "required_hours": compliance.required_hours,
+                    "approved_leave_days": compliance.approved_leave_days,
                     "compliance_status": compliance.compliance_status.value,
                     "violation_reasons": compliance.violation_reasons,
                     "evaluated_at": now,

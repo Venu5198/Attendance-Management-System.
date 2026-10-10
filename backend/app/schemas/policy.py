@@ -10,6 +10,7 @@ class ComplianceStatus(StrEnum):
     COMPLIANT = "COMPLIANT"
     NON_COMPLIANT = "NON_COMPLIANT"
     PENDING = "PENDING"
+    EXEMPT = "EXEMPT"
 
 
 class WeeklyComplianceResult(BaseModel):
@@ -22,6 +23,7 @@ class WeeklyComplianceResult(BaseModel):
     total_duration_seconds: int
     required_days: int = 3
     required_hours: float = 15.0
+    approved_leave_days: int = 0
     is_week_completed: bool
     compliance_status: ComplianceStatus
     violation_reasons: list[str] = Field(default_factory=list)
@@ -39,6 +41,7 @@ class PolicyViolationRecord(BaseModel):
     total_office_hours: float
     required_days: int
     required_hours: float
+    approved_leave_days: int = 0
     compliance_status: ComplianceStatus
     violation_reasons: list[str]
     evaluated_at: datetime

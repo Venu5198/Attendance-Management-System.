@@ -10,7 +10,7 @@ from fastapi.responses import JSONResponse
 
 from app.config import get_settings
 from app.database import close_mongo_connection, connect_to_mongo
-from app.routers import attendance, auth, employees, health, reports, violations
+from app.routers import attendance, auth, employees, health, leaves, reports, violations
 from app.scheduler.jobs import shutdown_scheduler, start_scheduler
 
 logging.basicConfig(
@@ -116,6 +116,7 @@ def create_application() -> FastAPI:
     app.include_router(auth.router, prefix=api_prefix)
     app.include_router(employees.router, prefix=api_prefix)
     app.include_router(attendance.router, prefix=api_prefix)
+    app.include_router(leaves.router, prefix=api_prefix)
     app.include_router(reports.router, prefix=api_prefix)
     app.include_router(violations.router, prefix=api_prefix)
 

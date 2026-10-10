@@ -244,3 +244,47 @@ def test_policy_exact_boundary_sub_15_hours_is_non_compliant(policy_service):
     assert res.total_office_hours == 14.9
     assert any("14.9 hr(s)" in r for r in res.violation_reasons)
 
+
+def test_policy_full_week_leave_is_exempt(policy_service):
+    """Full week approved leave (3+ days) yields EXEMPT status with 0 violations."""
+    week_start = date(2026, 9, 28)
+    week_end = date(2026, 10, 4)
+
+    res = policy_service.evaluate_weekly_compliance(
+        employee_id="EMP_LEAVE_FULL",
+        week_start=week_start,
+        week_end=week_end,
+        completed_records_in_week=[],
+        is_completed_week=True,
+        approved_leave_days=3,
+    )
+
+    assert res.compliance_status == ComplianceStatus.EXEMPT
+    assert res.required_days == 0
+    assert res.required_hours == 0.0
+    assert len(res.violation_reasons) == 0
+
+
+def test_policy_partial_leave_reduces_requirement_proportionally(policy_service):
+    """1 day approved leave reduces requirement to 2 days & 10 hours; meeting it gives COMPLIANT."""
+    week_start = date(2026, 9, 28)
+    week_end = date(2026, 10, 4)
+    records = [
+        {"work_date": "2026-09-28", "attendance_status": "COMPLETED", "duration_seconds": 5 * 3600},
+        {"work_date": "2026-09-29", "attendance_status": "COMPLETED", "duration_seconds": 5 * 3600},
+    ]
+
+    res = policy_service.evaluate_weekly_compliance(
+        employee_id="EMP_LEAVE_PARTIAL",
+        week_start=week_start,
+        week_end=week_end,
+        completed_records_in_week=records,
+        is_completed_week=True,
+        approved_leave_days=1,
+    )
+
+    assert res.compliance_status == ComplianceStatus.COMPLIANT
+    assert res.office_days == 2
+    assert res.required_days == 2
+    assert res.required_hours == 10.0
+    assert res.total_office_hours == 10.0

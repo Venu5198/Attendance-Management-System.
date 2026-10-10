@@ -7,13 +7,19 @@ from pydantic import BaseModel
 from pymongo.asynchronous.database import AsyncDatabase
 
 from app.database import get_database
-from app.dependencies import get_current_user, verify_employee_ownership
+from app.dependencies import get_current_user, require_admin, verify_employee_ownership
 from app.schemas.attendance import (
     AttendanceRecordResponse,
     CheckInResponse,
     CheckOutResponse,
 )
+from app.schemas.regularization import (
+    RegularizationRequestCreate,
+    RegularizationResponse,
+    RegularizationReviewRequest,
+)
 from app.services.attendance_service import AttendanceService
+from app.services.regularization_service import RegularizationService
 
 router = APIRouter(prefix="/attendance", tags=["Attendance"])
 
@@ -124,3 +130,63 @@ async def get_employee_history(
     verify_employee_ownership(current_user, employee_id)
     service = AttendanceService(db)
     return await service.get_employee_history(employee_id, start_date=start_date, end_date=end_date)
+
+
+@router.post(
+    "/regularize",
+    response_model=RegularizationResponse,
+    status_code=status.HTTP_201_CREATED,
+    summary="Submit an attendance regularization request",
+)
+async def submit_regularization(
+    body: RegularizationRequestCreate,
+    current_user: Annotated[dict, Depends(get_current_user)],
+    db: Annotated[AsyncDatabase, Depends(get_database)],
+):
+    """
+    Employee requests manual time correction for a workday when they forgot to clock in/out.
+    """
+    target_emp_id = resolve_employee_id(current_user, body.employee_id)
+    service = RegularizationService(db)
+    return await service.create_request(target_emp_id, body)
+
+
+@router.get(
+    "/regularize",
+    response_model=list[RegularizationResponse],
+    summary="List attendance regularization requests",
+)
+async def list_regularizations(
+    current_user: Annotated[dict, Depends(get_current_user)],
+    db: Annotated[AsyncDatabase, Depends(get_database)],
+    employee_id: str | None = Query(None, description="Filter by employee ID (Admin only)"),
+    status_filter: str | None = Query(
+        None, alias="status", description="Filter by status (PENDING, APPROVED, REJECTED)"
+    ),
+):
+    """List regularization requests. Employees only see their own requests; Admins can see all."""
+    target_emp_id = None
+    if current_user.get("role") == "ADMIN":
+        target_emp_id = employee_id
+    else:
+        target_emp_id = current_user.get("employee_id")
+
+    service = RegularizationService(db)
+    return await service.list_requests(employee_id=target_emp_id, status_filter=status_filter)
+
+
+@router.patch(
+    "/regularize/{request_id}",
+    response_model=RegularizationResponse,
+    summary="Review (Approve or Reject) an attendance regularization request (Admin only)",
+)
+async def review_regularization(
+    request_id: str,
+    body: RegularizationReviewRequest,
+    current_admin: Annotated[dict, Depends(require_admin)],
+    db: Annotated[AsyncDatabase, Depends(get_database)],
+):
+    """Admin endpoint to approve or reject a pending time regularization."""
+    reviewer_id = current_admin.get("user_id", "admin")
+    service = RegularizationService(db)
+    return await service.review_request(request_id, reviewer_id, body)

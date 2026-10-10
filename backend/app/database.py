@@ -131,6 +131,16 @@ async def ensure_indexes(db: AsyncDatabase) -> None:
     await db.notification_logs.create_index([("delivery_status", ASCENDING)], name="idx_notifications_status")
     await db.notification_logs.create_index([("attempted_at", DESCENDING)], name="idx_notifications_attempted_at")
 
+    # 6. Regularization collection indexes
+    await db.attendance_regularizations.create_index([("employee_id", ASCENDING)], name="idx_regularize_emp")
+    await db.attendance_regularizations.create_index([("status", ASCENDING)], name="idx_regularize_status")
+    await db.attendance_regularizations.create_index([("work_date", ASCENDING)], name="idx_regularize_date")
+
+    # 7. Leaves collection indexes
+    await db.leaves.create_index([("employee_id", ASCENDING)], name="idx_leaves_emp")
+    await db.leaves.create_index([("status", ASCENDING)], name="idx_leaves_status")
+    await db.leaves.create_index([("start_date", ASCENDING), ("end_date", ASCENDING)], name="idx_leaves_dates")
+
     logger.info("MongoDB indexes successfully created.")
 
 

@@ -93,4 +93,3 @@ def test_get_week_boundaries_year_transition():
     mon, sun = get_week_boundaries(dec_31)
     assert mon == date(2026, 12, 28)
     assert sun == date(2027, 1, 3)
-
