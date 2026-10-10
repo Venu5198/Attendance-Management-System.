@@ -164,25 +164,19 @@ jobs:
         run: |
           npx playwright install --with-deps chromium
 
-      - name: Start Backend API Server
+      - name: Build Frontend Production Bundle
+        working-directory: ./frontend
+        run: npm run build
+
+      - name: Launch Services & Run Playwright E2E Suite
         run: |
           cd backend && uvicorn app.main:app --host 127.0.0.1 --port 8000 &
-          sleep 5
+          cd frontend && npx vite preview --port 5173 --host 127.0.0.1 &
+          sleep 6
           curl -f http://127.0.0.1:8000/health
-
-      - name: Start Frontend Preview Server
-        run: |
-          cd frontend
-          npm run build
-          npx vite preview --port 5173 --host 127.0.0.1 &
-          sleep 5
-
-      - name: Run Playwright E2E Suite
-        working-directory: ./frontend
+          cd frontend && npm run test:e2e
         env:
           PLAYWRIGHT_TEST_BASE_URL: http://127.0.0.1:5173
-        run: |
-          npm run test:e2e
 
       - name: Upload Playwright Artifacts on Failure
         if: failure()
