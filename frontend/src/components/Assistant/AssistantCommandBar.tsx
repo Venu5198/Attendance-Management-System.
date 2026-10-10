@@ -72,42 +72,46 @@ export const AssistantCommandBar: React.FC<AssistantCommandBarProps> = ({ varian
     handleSearch(suggestionText);
   };
 
-  const renderPositionSwitcher = () => (
-    <div className="flex items-center gap-1 rounded-lg bg-slate-100 p-0.5 text-[11px] font-medium text-slate-600">
+  const renderPositionSwitcher = (fullWidth = false) => (
+    <div
+      className={`grid grid-cols-3 gap-0.5 rounded-lg bg-slate-100 p-0.5 text-[11px] font-medium text-slate-600 ${
+        fullWidth ? "w-full" : ""
+      }`}
+    >
       <button
         onClick={() => setPosition("FLOATING_HUD")}
-        className={`flex items-center gap-1 rounded-md px-2 py-1 transition ${
+        className={`flex items-center justify-center gap-1 rounded-md px-1.5 py-1 transition ${
           position === "FLOATING_HUD"
             ? "bg-white text-indigo-700 shadow-xs font-semibold"
             : "hover:text-slate-900"
         }`}
         title="Floating HUD (Bottom-Right)"
       >
-        <Layers className="h-3 w-3" />
+        <Layers className="h-3 w-3 shrink-0" />
         <span>HUD</span>
       </button>
       <button
         onClick={() => setPosition("NAVBAR")}
-        className={`flex items-center gap-1 rounded-md px-2 py-1 transition ${
+        className={`flex items-center justify-center gap-1 rounded-md px-1.5 py-1 transition ${
           position === "NAVBAR"
             ? "bg-white text-indigo-700 shadow-xs font-semibold"
             : "hover:text-slate-900"
         }`}
         title="Top Navbar"
       >
-        <Compass className="h-3 w-3" />
+        <Compass className="h-3 w-3 shrink-0" />
         <span>Navbar</span>
       </button>
       <button
         onClick={() => setPosition("SIDEBAR")}
-        className={`flex items-center gap-1 rounded-md px-2 py-1 transition ${
+        className={`flex items-center justify-center gap-1 rounded-md px-1.5 py-1 transition ${
           position === "SIDEBAR"
             ? "bg-white text-indigo-700 shadow-xs font-semibold"
             : "hover:text-slate-900"
         }`}
         title="Left Sidebar"
       >
-        <PanelLeft className="h-3 w-3" />
+        <PanelLeft className="h-3 w-3 shrink-0" />
         <span>Sidebar</span>
       </button>
     </div>
@@ -261,13 +265,13 @@ export const AssistantCommandBar: React.FC<AssistantCommandBarProps> = ({ varian
   if (variant === "sidebar") {
     return (
       <div className="mt-auto border-t border-slate-200 pt-4 px-1">
-        <div className="rounded-xl border border-indigo-100 bg-indigo-50/50 p-3">
-          <div className="flex items-center justify-between mb-2">
-            <div className="flex items-center gap-1.5">
-              <Sparkles className="h-3.5 w-3.5 text-indigo-600" />
-              <span className="text-xs font-bold text-slate-800">AI Assistant</span>
-            </div>
-            {renderPositionSwitcher()}
+        <div className="rounded-xl border border-indigo-100 bg-indigo-50/50 p-2.5">
+          <div className="flex items-center gap-1.5 mb-2">
+            <Sparkles className="h-3.5 w-3.5 text-indigo-600" />
+            <span className="text-xs font-bold text-slate-800">AI Assistant</span>
+          </div>
+          <div className="mb-2">
+            {renderPositionSwitcher(true)}
           </div>
 
           <div className="flex items-center gap-1.5 rounded-lg border border-indigo-200/80 bg-white px-2 py-1.5">
@@ -354,7 +358,7 @@ export const AssistantCommandBar: React.FC<AssistantCommandBarProps> = ({ varian
               <X className="h-3.5 w-3.5" />
             </button>
           </div>
-          {renderPositionSwitcher()}
+          {renderPositionSwitcher(true)}
         </div>
       )}
 
