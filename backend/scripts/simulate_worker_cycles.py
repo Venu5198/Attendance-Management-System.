@@ -99,7 +99,7 @@ async def run_simulation(db: AsyncDatabase | None = None) -> dict:
             "department": "Operations",
             "role": "EMPLOYEE",
             "is_active": True,
-            "hire_date": date(2026, 9, 17),  # Joined Thursday (2 remaining working days)
+            "hire_date": "2026-09-17",  # Joined Thursday (2 remaining working days)
             "archetype": "Mid-Week Onboarding Joiner (Pro-rata target: 1 day, 5h)",
         },
         {
@@ -286,7 +286,7 @@ async def run_simulation(db: AsyncDatabase | None = None) -> dict:
 
     # 4. Run Policy Evaluation
     policy_service = PolicyService(db)
-    await policy_service.evaluate_weekly_policy(sim_monday)
+    await policy_service.evaluate_and_record_completed_week(sim_monday, sim_sunday)
 
     # 5. Verify Assertions & Synthesize Report Matrix
     sim_violations = await db.policy_violations.find({"employee_id": {"$regex": f"^{sim_prefix}"}}).to_list(100)
