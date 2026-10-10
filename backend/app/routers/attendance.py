@@ -2,7 +2,7 @@
 
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
 from pydantic import BaseModel
 from pymongo.asynchronous.database import AsyncDatabase
 
@@ -28,6 +28,9 @@ router = APIRouter(prefix="/attendance", tags=["Attendance"])
 
 class AttendanceActionRequest(BaseModel):
     employee_id: str | None = None
+    client_ip: str | None = None
+    latitude: float | None = None
+    longitude: float | None = None
 
 
 def resolve_employee_id(current_user: dict, requested_emp_id: str | None) -> str:
@@ -66,6 +69,7 @@ def resolve_employee_id(current_user: dict, requested_emp_id: str | None) -> str
     summary="Employee office check-in",
 )
 async def check_in(
+    request: Request,
     current_user: Annotated[dict, Depends(get_current_user)],
     db: Annotated[AsyncDatabase, Depends(get_database)],
     body: AttendanceActionRequest | None = None,
@@ -73,11 +77,20 @@ async def check_in(
     """
     Record office check-in.
     The entry timestamp is generated on the server using UTC to prevent manipulation.
+    For remote work exceptions, client IP and geolocation are validated against approved boundaries.
     """
     req_eid = body.employee_id if body else None
     target_emp_id = resolve_employee_id(current_user, req_eid)
+
+    forwarded = request.headers.get("x-forwarded-for")
+    remote_ip = (body.client_ip if body and body.client_ip else None) or (
+        forwarded.split(",")[0].strip() if forwarded else (request.client.host if request.client else None)
+    )
+    lat = body.latitude if body else None
+    lng = body.longitude if body else None
+
     service = AttendanceService(db)
-    return await service.check_in(target_emp_id)
+    return await service.check_in(target_emp_id, client_ip=remote_ip, latitude=lat, longitude=lng)
 
 
 @router.post(

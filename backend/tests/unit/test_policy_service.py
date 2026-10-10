@@ -293,7 +293,7 @@ def test_policy_partial_leave_reduces_requirement_proportionally(policy_service)
 def test_compute_pre_hire_workdays():
     """Verify pre-hire business days calculation for various onboarding scenarios."""
     week_start = date(2026, 9, 28)  # Monday
-    week_end = date(2026, 10, 4)   # Sunday
+    week_end = date(2026, 10, 4)  # Sunday
 
     # Hired before week starts
     assert compute_pre_hire_workdays(date(2026, 9, 1), week_start, week_end) == 0

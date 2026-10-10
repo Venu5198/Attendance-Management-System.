@@ -1,6 +1,7 @@
 """Attendance recording, check-in, check-out, and validation service."""
 
 import logging
+import math
 from datetime import datetime
 from uuid import uuid4
 
@@ -13,9 +14,22 @@ from app.schemas.attendance import (
     CheckInResponse,
     CheckOutResponse,
 )
+from app.schemas.leave import LeaveStatus, LeaveType
 from app.utils.time_utils import get_work_date, now_utc, to_utc
 
 logger = logging.getLogger(__name__)
+
+
+def haversine_distance_meters(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
+    """Calculate the great-circle distance between two points in meters using the Haversine formula."""
+    r = 6371000.0  # Earth's radius in meters
+    phi1, phi2 = math.radians(lat1), math.radians(lat2)
+    delta_phi = math.radians(lat2 - lat1)
+    delta_lambda = math.radians(lon2 - lon1)
+
+    a = math.sin(delta_phi / 2.0) ** 2 + math.cos(phi1) * math.cos(phi2) * math.sin(delta_lambda / 2.0) ** 2
+    c = 2.0 * math.atan2(math.sqrt(a), math.sqrt(1.0 - a))
+    return r * c
 
 
 class AttendanceService:
@@ -23,6 +37,7 @@ class AttendanceService:
         self.db = db
         self.attendance = db.attendance
         self.employees = db.employees
+        self.leaves = db.leaves
 
     async def _verify_employee_exists_and_active(self, employee_id: str):
         emp = await self.employees.find_one({"employee_id": employee_id})
@@ -38,15 +53,59 @@ class AttendanceService:
             )
         return emp
 
-    async def check_in(self, employee_id: str) -> CheckInResponse:
+    async def check_in(
+        self,
+        employee_id: str,
+        client_ip: str | None = None,
+        latitude: float | None = None,
+        longitude: float | None = None,
+    ) -> CheckInResponse:
         """
         Record employee office check-in.
         Uses server-controlled UTC entry timestamp to prevent client manipulation.
+        Enforces IP binding and geo-fence validation if an approved REMOTE_EXCEPTION is active.
         """
-        await self._verify_employee_exists_and_active(employee_id)
+        emp = await self._verify_employee_exists_and_active(employee_id)
 
         now = now_utc()
         work_date = get_work_date(now)
+
+        # Check for approved remote exception on today's workday
+        remote_exception = await self.leaves.find_one(
+            {
+                "employee_id": employee_id,
+                "status": LeaveStatus.APPROVED.value,
+                "leave_type": LeaveType.REMOTE_EXCEPTION.value,
+                "start_date": {"$lte": work_date},
+                "end_date": {"$gte": work_date},
+            }
+        )
+
+        if remote_exception:
+            # 1. IP Binding Validation
+            allowed_ip = emp.get("allowed_remote_ip")
+            if allowed_ip and (not client_ip or client_ip.strip() != allowed_ip.strip()):
+                raise HTTPException(
+                    status_code=status.HTTP_403_FORBIDDEN,
+                    detail=f"Remote clock-in rejected: Client IP '{client_ip}' does not match pre-approved remote IP.",
+                )
+
+            # 2. Geo-Fence Boundary Validation
+            allowed_lat = emp.get("allowed_lat")
+            allowed_lng = emp.get("allowed_lng")
+            if allowed_lat is not None and allowed_lng is not None:
+                if latitude is None or longitude is None:
+                    raise HTTPException(
+                        status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                        detail="Geolocation coordinates required for remote clock-in.",
+                    )
+                radius = emp.get("geo_fence_radius_meters") or 500.0
+                dist = haversine_distance_meters(allowed_lat, allowed_lng, latitude, longitude)
+                if dist > radius:
+                    raise HTTPException(
+                        status_code=status.HTTP_403_FORBIDDEN,
+                        detail=f"Remote clock-in rejected: Outside approved boundary ({round(dist, 1)}m > {radius}m).",
+                    )
 
         # Check if record already exists for today
         existing = await self.attendance.find_one(
@@ -69,6 +128,9 @@ class AttendanceService:
             "exit_time": None,
             "duration_seconds": 0,
             "attendance_status": AttendanceStatus.IN_PROGRESS.value,
+            "client_ip": client_ip,
+            "latitude": latitude,
+            "longitude": longitude,
             "created_at": now,
             "updated_at": now,
         }

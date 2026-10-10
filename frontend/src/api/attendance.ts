@@ -1,11 +1,21 @@
 import { apiClient } from "./client";
 import type { AttendanceRecord } from "../types";
 
+export interface CheckInPayload {
+  employee_id?: string;
+  client_ip?: string;
+  latitude?: number;
+  longitude?: number;
+}
+
 export const attendanceApi = {
-  checkIn: async (employeeId?: string): Promise<{ message: string; attendance: AttendanceRecord }> => {
+  checkIn: async (
+    payload?: string | CheckInPayload
+  ): Promise<{ message: string; attendance: AttendanceRecord }> => {
+    const body = typeof payload === "string" ? { employee_id: payload } : (payload ?? {});
     const response = await apiClient.post<{ message: string; attendance: AttendanceRecord }>(
       "/attendance/check-in",
-      employeeId ? { employee_id: employeeId } : {}
+      body
     );
     return response.data;
   },

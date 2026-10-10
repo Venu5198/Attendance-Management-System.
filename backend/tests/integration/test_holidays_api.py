@@ -1,6 +1,5 @@
 """Integration tests for Company Holiday Calendar and Mid-Week Onboarding targets."""
 
-from datetime import date
 import pytest
 from httpx import AsyncClient
 
@@ -56,9 +55,7 @@ async def test_holiday_crud_workflow(async_client: AsyncClient, seed_employee_us
 
 
 @pytest.mark.asyncio
-async def test_holiday_and_onboarding_scales_weekly_evaluation(
-    async_client: AsyncClient, test_db, seed_admin_user
-):
+async def test_holiday_and_onboarding_scales_weekly_evaluation(async_client: AsyncClient, test_db, seed_admin_user):
     """
     Test that holidays and mid-week onboarding hire_dates dynamically scale required targets
     during evaluate-week endpoint run.
@@ -67,16 +64,17 @@ async def test_holiday_and_onboarding_scales_weekly_evaluation(
 
     # Week: 2026-09-21 (Mon) to 2026-09-27 (Sun) - completed past week
     week_start = "2026-09-21"
-    week_end = "2026-09-27"
 
     # Configure a holiday on Wednesday 2026-09-23
-    await test_db.holidays.insert_one({
-        "holiday_id": "hol-001",
-        "holiday_date": "2026-09-23",
-        "name": "Mid-Week Holiday",
-        "description": "Company Day Off",
-        "created_by": "admin",
-    })
+    await test_db.holidays.insert_one(
+        {
+            "holiday_id": "hol-001",
+            "holiday_date": "2026-09-23",
+            "name": "Mid-Week Holiday",
+            "description": "Company Day Off",
+            "created_by": "admin",
+        }
+    )
 
     # Employee 1: Regular employee, works 2 days (10 hours).
     # Since 1 holiday exists, target drops to 2 days / 10 hours -> COMPLIANT (no violation).
@@ -91,22 +89,24 @@ async def test_holiday_and_onboarding_scales_weekly_evaluation(
     await test_db.employees.insert_one(emp1_doc)
 
     # Attendance logs for EMP_HOL_01: 2 completed days (5h each = 10h)
-    await test_db.attendance.insert_many([
-        {
-            "session_id": "sess-h1",
-            "employee_id": "EMP_HOL_01",
-            "work_date": "2026-09-21",
-            "attendance_status": "COMPLETED",
-            "duration_seconds": 5 * 3600,
-        },
-        {
-            "session_id": "sess-h2",
-            "employee_id": "EMP_HOL_01",
-            "work_date": "2026-09-22",
-            "attendance_status": "COMPLETED",
-            "duration_seconds": 5 * 3600,
-        },
-    ])
+    await test_db.attendance.insert_many(
+        [
+            {
+                "session_id": "sess-h1",
+                "employee_id": "EMP_HOL_01",
+                "work_date": "2026-09-21",
+                "attendance_status": "COMPLETED",
+                "duration_seconds": 5 * 3600,
+            },
+            {
+                "session_id": "sess-h2",
+                "employee_id": "EMP_HOL_01",
+                "work_date": "2026-09-22",
+                "attendance_status": "COMPLETED",
+                "duration_seconds": 5 * 3600,
+            },
+        ]
+    )
 
     # Employee 2: Joined on Thursday 2026-09-24.
     # Pre-hire workdays = Mon, Tue, Wed = 3 days. Total exempt = 1 holiday + 3 pre-hire = 4 days >= 3.
