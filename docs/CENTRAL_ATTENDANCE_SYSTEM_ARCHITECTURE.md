@@ -11,7 +11,7 @@ The **Central Attendance Management System (CAMS)** is an enterprise-grade platf
 CAMS centralizes and automates:
 * **Real-time Workplace Presence**: Tamper-proof, server-controlled check-in and check-out tracking eliminating client-side clock alterations.
 * **Hybrid Work-from-Home (WFH) Governance**: Algorithmic evaluation of weekly office attendance requirements with dynamic policy scaling.
-* **Autonomous Exemption Management**: End-to-end lifecycle for formal leaves (`VACATION`, `SICK`, `CASUAL`) and authorized remote work exceptions (`REMOTE_EXCEPTION`).
+* **Autonomous Exemption Management**: End-to-end lifecycle for formal leaves (`VACATION`, `SICK`, `CASUAL`) and authorized remote work exceptions (`REMOTE_EXCEPTION`), backed by atomic bulk administration routes.
 * **Continuous Compliance Auditing**: Proactive rolling-window health monitoring, automated violation logging, and notification dispatching.
 
 ```mermaid
@@ -19,7 +19,7 @@ graph TD
     A[Employee / Device] -->|Check-in / Check-out| B[FastAPI Gateway]
     A -->|Leave / Regularization| B
     A -->|Natural Language Assistant| B
-    B -->|Geo/IP Verification| C[Security & Auth Layer]
+    B -->|Geo/IP Verification & X-Forwarded-For| C[Security & Auth Layer]
     B -->|CRUD & Aggregations| D[(MongoDB Cluster)]
     E[Automated Celery / Cron Scheduler] -->|Hourly / Weekly Trigger| F[Policy Evaluation Engine]
     F -->|Scale Targets| G[Holiday & Joiner Sub-engines]
@@ -28,7 +28,7 @@ graph TD
     H -->|SMTP / SendGrid| I[Manager & Employee Alerts]
 ```
 
-### 1.2 Core Compliance Rules & Floor Time Constraints
+### 1.2 Core Compliance Rules, Floor Time Constraints, & Lifecycle Realities
 Enterprise policy mandates that all active non-exempt employees meet two simultaneous weekly compliance thresholds during a standard evaluation cycle (Monday `00:00:00` to Sunday `23:59:59` company local time):
 
 1. **3-Day Minimum Weekly Office Attendance (`POLICY_REQUIRED_DAYS = 3`)**:
@@ -40,8 +40,27 @@ Enterprise policy mandates that all active non-exempt employees meet two simulta
 3. **Simultaneous Constraint Enforcement**:
    * Both conditions are evaluated conjunctively:
    $$\text{Compliant} \iff (\text{Office Days} \ge \text{Adjusted Required Days}) \land (\text{Total Office Hours} \ge \text{Adjusted Required Hours})$$
-   * Failing either condition flags the weekly evaluation as `NON_COMPLIANT`.
-   * While the evaluation week is active (current Monday through Sunday), non-qualifying records carry a status of `PENDING` rather than immediate violation to allow employees the remaining days to fulfill targets.
+
+#### The 4 Dynamic Lifecycle States:
+Weekly compliance is never a binary calculation; it operates across 4 distinct operational states:
+
+```mermaid
+stateDiagram-v2
+    [*] --> ActiveWeek: Monday 00:00:00
+    ActiveWeek --> PENDING: Current hours < target & week incomplete
+    ActiveWeek --> COMPLIANT: Hours & Days met early
+    ActiveWeek --> EXEMPT: Full leaves / holidays / pre-hire offset targets (Req=0)
+    PENDING --> NON_COMPLIANT: Sunday 23:59:59 passes & targets unmet
+    PENDING --> COMPLIANT: Targets fulfilled before Sunday 23:59:59
+    COMPLIANT --> [*]: Week Archived
+    EXEMPT --> [*]: Week Archived
+    NON_COMPLIANT --> PolicyViolation: Persisted to DB & Notified
+```
+
+* **`PENDING` (Active Mid-Week Reality)**: While an evaluation week is in progress (e.g. Wednesday afternoon), an employee who has only clocked 1 day and 6 hours sits in a `PENDING` status. Violations are never written while time remains to fulfill targets.
+* **`EXEMPT` (Policy Offset Reality)**: If an employee's total exempt days ($L + H + P$) completely cover the 3-day baseline ($R_d = 0$), and they logged 0 office days, their weekly status resolves dynamically to `EXEMPT`. They are never penalized with a violation.
+* **`COMPLIANT`**: Office days and accumulated floor hours meet or exceed adjusted targets. If an exempt employee chooses to work, their status upgrades from `EXEMPT` to `COMPLIANT`.
+* **`NON_COMPLIANT`**: Evaluated strictly **after** the week closes (Sunday has elapsed in company local time). Unmet targets are recorded as policy violations.
 
 ---
 
@@ -89,7 +108,7 @@ sequenceDiagram
 
 ---
 
-### 2.2 Leave & Remote Exemption Lifecycle
+### 2.2 Leave & Remote Exemption Lifecycle (With Bulk Operations)
 CAMS provides four distinct absence pipelines under the `leaves` entity:
 
 | Leave Type | Purpose & Impact | Impact on Target Scaling |
@@ -98,6 +117,9 @@ CAMS provides four distinct absence pipelines under the `leaves` entity:
 | `SICK` | Health & medical incapacitation | Reduces required days by 1; reduces required hours by 5.0h per approved workday |
 | `CASUAL` | Urgent personal affairs | Reduces required days by 1; reduces required hours by 5.0h per approved workday |
 | `REMOTE_EXCEPTION` | Approved work-from-home or field work | Unlocks remote clock-in with IP subnet & Geofence validation; counts toward compliance |
+
+#### Tier-2 Bulk Leave Administration:
+HR directors managing large teams can approve or reject up to 50 concurrent leave requests simultaneously via `POST /api/v1/leaves/bulk-review`. This operation validates request integrity and updates documents atomically, drastically reducing administrative overhead.
 
 #### Overlapping Leave Guardrail:
 To prevent duplicate deductions or concurrent exemptions, new leave submissions are validated against approved and pending requests:
@@ -168,12 +190,14 @@ The Holiday Engine (`HolidayService`) reconciles company-wide observed holidays 
 
 ## 3. SECURITY & INTELLIGENCE ARCHITECTURE
 
-### 3.1 Geofencing & Subnet Binding (Haversine Distance Engine)
+### 3.1 Geofencing & Subnet Binding with Reverse Proxy Telemetry
 For employees operating under an approved `REMOTE_EXCEPTION`, physical office gates are bypassed in favor of cryptographically validated location telemetry.
 
 ```mermaid
 flowchart TD
-    Req[Remote Check-In Request] --> HasExemption{Approved REMOTE_EXCEPTION?}
+    Req[Remote Check-In Request] --> Proxy[Reverse Proxy / Ingress]
+    Proxy --> HeaderExtract[Extract X-Forwarded-For Client IP]
+    HeaderExtract --> HasExemption{Approved REMOTE_EXCEPTION?}
     HasExemption -- No --> Standard[Record Physical Office Check-In]
     HasExemption -- Yes --> IPCheck{IP matches allowed_remote_ip?}
     IPCheck -- Mismatch --> RejectIP[HTTP 403: Subnet Mismatch]
@@ -183,6 +207,15 @@ flowchart TD
     Haversine --> RadiusCheck{d <= geo_fence_radius_meters?}
     RadiusCheck -- d > radius --> RejectBoundary[HTTP 403: Outside Approved Geofence]
     RadiusCheck -- d <= radius --> AllowRemote[HTTP 201: Check-in Approved]
+```
+
+#### Reverse Proxy Header Isolation (`X-Forwarded-For`):
+To reliably identify the origin client IP behind Docker bridge networks, Nginx reverse proxies, AWS ALBs, or Kubernetes Ingress controllers, FastAPI inspects proxy chain headers before testing `allowed_remote_ip`:
+```python
+forwarded = request.headers.get("x-forwarded-for")
+remote_ip = (body.client_ip if body and body.client_ip else None) or (
+    forwarded.split(",")[0].strip() if forwarded else (request.client.host if request.client else None)
+)
 ```
 
 #### The Haversine Great-Circle Formula:
@@ -223,18 +256,50 @@ graph LR
 
 ---
 
-### 3.3 JWT Session Lifecycles & Silent Renewal Interceptor
-Authentication enforces stateless JWT tokens with asymmetric protection and seamless client renewal:
+### 3.3 JWT Dual-Token Lifecycle & Silent Renewal Architecture
+Authentication implements stateless JWT tokens paired with asymmetric verification and automatic client renewal:
 
+```mermaid
+sequenceDiagram
+    autonumber
+    participant UI as Browser / Axios
+    participant Interceptor as Axios Response Interceptor
+    participant Auth as FastAPI /auth/refresh-token
+    participant Protected as Protected Endpoint
+
+    UI->>Protected: GET /api/v1/attendance/today (Expired Access Token)
+    Protected-->>Interceptor: HTTP 401 Unauthorized
+    Note over Interceptor: Intercept 401 & check originalRequest._retry
+    Interceptor->>Auth: POST /api/v1/auth/refresh-token (with 7-Day Refresh Token)
+    Auth-->>Interceptor: 200 OK (New Access Token + Rotated Refresh Token)
+    Note over Interceptor: Update localStorage & flush failed queue
+    Interceptor->>Protected: Retry original request with New Access Token
+    Protected-->>UI: 200 OK (Attendance Record Response)
+```
+
+#### Token Lifespan & Security Structure:
 * **Access Token**: Short-lived (30 minutes), carrying `user_id`, `role`, and `employee_id`.
-* **Refresh Token**: Long-lived (7 days), stored in secure local storage.
-* **Axios Interceptor**: Intercepts HTTP `401 Unauthorized` responses without crashing the UI, queues concurrent failed requests, exchanges the refresh token at `/api/v1/auth/refresh-token`, updates HTTP headers, and retries the original requests automatically.
+* **Refresh Token**: Long-lived (7 days), stored securely and exchanged via `POST /api/v1/auth/refresh-token`.
+* **Token Response Schema (`TokenResponse`)**:
+  ```json
+  {
+    "access_token": "eyJhbGciOiJIUzI1NiIsIn...",
+    "refresh_token": "eyJhbGciOiJIUzI1NiIsIn...",
+    "token_type": "bearer",
+    "expires_in_seconds": 1800,
+    "user_id": "usr_78a1bc",
+    "username": "alex.engineer",
+    "role": "EMPLOYEE",
+    "employee_id": "EMP001"
+  }
+  ```
+* **Axios Request Serialization Queue**: If multiple parallel requests fail with 401 while a refresh is in progress, they are queued (`failedQueue`) and fulfilled simultaneously once the new access token is received, preventing token collision races.
 
 ---
 
 ## 4. SYSTEM DESIGN, DATA SCHEMA, & BACKEND APIS
 
-### 4.1 MongoDB Schema Architecture
+### 4.1 MongoDB Schema Architecture & Frontend $O(1)$ Optimization
 
 ```mermaid
 erDiagram
@@ -282,6 +347,17 @@ erDiagram
         string reviewed_by
     }
 
+    leaves {
+        string leave_id PK
+        string employee_id FK
+        string start_date
+        string end_date
+        string leave_type
+        string status
+        string reason
+        string reviewed_by
+    }
+
     policy_violations {
         string violation_id PK
         string employee_id FK
@@ -294,6 +370,25 @@ erDiagram
         boolean notification_sent
     }
 ```
+
+#### Frontend $O(1)$ Hash Map Optimization (`createCalendarMappingLayer`):
+In [`AttendanceCalendar.tsx`](file:///c:/devops/Attendance%20management/frontend/src/components/Attendance/AttendanceCalendar.tsx), displaying month grids involves 28–35 visual cells. Evaluating each cell via linear search over array logs is $O(M \times N)$ and causes frame drops during month switching. CAMS preprocesses attendance logs into an instantaneous $O(1)$ dictionary:
+```typescript
+export function createCalendarMappingLayer(records: AttendanceRecord[]): Record<string, CalendarDayData> {
+  const map: Record<string, CalendarDayData> = {};
+  records.forEach((rec) => {
+    map[rec.work_date] = {
+      status: rec.attendance_status === 'IN_PROGRESS' ? 'In Progress' :
+              rec.attendance_status === 'NOT_ATTENDED' ? 'Missed' : 'Attended',
+      entryTime: rec.entry_time,
+      exitTime: rec.exit_time,
+      stayHours: rec.duration_hours || 0,
+    };
+  });
+  return map;
+}
+```
+This reduces calendar cell state resolution to $O(1)$ key lookups (`map[dateString]`), ensuring 60fps calendar transitions.
 
 #### Representation of Missing Logs ("Not attended office"):
 When an employee does not check in on a given workday:
@@ -389,7 +484,28 @@ Timestamps are stored in MongoDB as ISO-8601 UTC date objects (`datetime(..., tz
   }
   ```
 
-#### 4. GET `/api/v1/violations/health-scores`
+#### 4. POST `/api/v1/leaves/bulk-review`
+* **Purpose**: Batch approve or reject up to 50 concurrent vacation, sick, or remote exception requests in a single transaction.
+* **Request Body**:
+  ```json
+  {
+    "leave_ids": ["LV-990", "LV-991"],
+    "action": "APPROVED",
+    "admin_notes": "Exempting dev squad for corporate offsite hackathon"
+  }
+  ```
+* **Response (HTTP 200)**:
+  ```json
+  {
+    "total_requested": 2,
+    "success_count": 2,
+    "failed_count": 0,
+    "updated_ids": ["LV-990", "LV-991"],
+    "errors": []
+  }
+  ```
+
+#### 5. GET `/api/v1/violations/health-scores`
 * **Purpose**: Rolling 4-week compliance history and health rating badge per employee.
 * **Rating Tiers**:
   * $\ge 90.0\%$: `EXCELLENT` (Green badge)
@@ -425,7 +541,7 @@ Timestamps are stored in MongoDB as ISO-8601 UTC date objects (`datetime(..., tz
   ]
   ```
 
-#### 5. POST `/api/v1/assistant/query`
+#### 6. POST `/api/v1/assistant/query`
 * **Purpose**: Natural Language query parsing and contextual execution.
 * **Request Body**:
   ```json
