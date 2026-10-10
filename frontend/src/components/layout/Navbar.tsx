@@ -14,8 +14,8 @@ export const Navbar: React.FC = () => {
         </span>
       </div>
 
-      {/* Natural Language Assistant Command Bar */}
-      <AssistantCommandBar compact />
+      {/* Natural Language Assistant Command Bar (active when position === 'NAVBAR') */}
+      <AssistantCommandBar variant="navbar" />
 
       <div className="flex items-center gap-4">
         <div className="flex items-center gap-2 text-right">

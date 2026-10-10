@@ -11,6 +11,8 @@ import {
   CalendarDays,
 } from "lucide-react";
 
+import { AssistantCommandBar } from "../Assistant/AssistantCommandBar";
+
 export const Sidebar: React.FC = () => {
   const { user } = useAuth();
   const isAdmin = user?.role === "ADMIN";
@@ -35,29 +37,34 @@ export const Sidebar: React.FC = () => {
   const links = isAdmin ? adminLinks : employeeLinks;
 
   return (
-    <aside className="w-64 flex-shrink-0 border-r border-slate-200 bg-white min-h-[calc(100vh-4rem)] p-4">
-      <div className="mb-6 px-3">
-        <h2 className="text-xs font-bold uppercase tracking-wider text-slate-400">Navigation</h2>
+    <aside className="w-64 flex-shrink-0 border-r border-slate-200 bg-white min-h-[calc(100vh-4rem)] p-4 flex flex-col justify-between">
+      <div>
+        <div className="mb-6 px-3">
+          <h2 className="text-xs font-bold uppercase tracking-wider text-slate-400">Navigation</h2>
+        </div>
+        <nav className="space-y-1">
+          {links.map((link) => (
+            <NavLink
+              key={link.to}
+              to={link.to}
+              end={link.to === "/dashboard" || link.to === "/dashboard/employee"}
+              className={({ isActive }) =>
+                `flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition ${
+                  isActive
+                    ? "bg-emerald-600 text-white shadow-sm"
+                    : "text-slate-600 hover:bg-slate-100 hover:text-slate-900"
+                }`
+              }
+            >
+              {link.icon}
+              <span>{link.label}</span>
+            </NavLink>
+          ))}
+        </nav>
       </div>
-      <nav className="space-y-1">
-        {links.map((link) => (
-          <NavLink
-            key={link.to}
-            to={link.to}
-            end={link.to === "/dashboard" || link.to === "/dashboard/employee"}
-            className={({ isActive }) =>
-              `flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition ${
-                isActive
-                  ? "bg-emerald-600 text-white shadow-sm"
-                  : "text-slate-600 hover:bg-slate-100 hover:text-slate-900"
-              }`
-            }
-          >
-            {link.icon}
-            <span>{link.label}</span>
-          </NavLink>
-        ))}
-      </nav>
+
+      {/* Assistant Command Bar (active when position === 'SIDEBAR') */}
+      <AssistantCommandBar variant="sidebar" />
     </aside>
   );
 };

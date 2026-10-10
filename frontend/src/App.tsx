@@ -1,6 +1,7 @@
 import React from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './auth/AuthContext';
+import { AssistantProvider } from './context/AssistantContext';
 import { ProtectedRoute } from './auth/ProtectedRoute';
 import { RoleProtectedRoute } from './auth/RoleProtectedRoute';
 import { AppLayout } from './components/layout/AppLayout';
@@ -27,8 +28,9 @@ export const App: React.FC = () => {
   return (
     <BrowserRouter>
       <AuthProvider>
-        <Routes>
-          <Route path="/login" element={<LoginPage />} />
+        <AssistantProvider>
+          <Routes>
+            <Route path="/login" element={<LoginPage />} />
 
           {/* Protected Routes */}
           <Route
@@ -75,6 +77,7 @@ export const App: React.FC = () => {
           {/* Catch-all */}
           <Route path="*" element={<Navigate to="/dashboard" replace />} />
         </Routes>
+        </AssistantProvider>
       </AuthProvider>
     </BrowserRouter>
   );
