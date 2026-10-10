@@ -11,7 +11,7 @@ async def test_worker_cycles_simulation_suite(test_db):
     Execute end-to-end multi-archetype worker transaction cycles
     and assert policy evaluation accuracy.
     """
-    report = await run_simulation()
+    report = await run_simulation(db=test_db)
 
     assert report["all_passed"] is True
     assert report["total_simulated_workers"] == 5

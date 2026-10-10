@@ -183,4 +183,5 @@ async def test_assistant_action_create_regularization_success(async_client: Asyn
     # Verify document exists in regularizations collection
     reg_doc = await test_db.attendance_regularizations.find_one({"employee_id": emp_id, "work_date": target_d})
     assert reg_doc is not None
-    assert reg_doc["duration_hours"] == 9.0
+    assert reg_doc["duration_seconds"] == 9 * 3600
+    assert data["data"]["duration_hours"] == 9.0

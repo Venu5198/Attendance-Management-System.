@@ -15,6 +15,7 @@ from uuid import uuid4
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from pymongo import AsyncMongoClient
+from pymongo.asynchronous.database import AsyncDatabase
 
 from app.config import get_settings
 from app.database import ensure_indexes
@@ -24,10 +25,14 @@ from app.services.policy_service import PolicyService
 from app.utils.time_utils import get_company_tz
 
 
-async def run_simulation(drop_existing: bool = False) -> dict:
+async def run_simulation(db: AsyncDatabase | None = None) -> dict:
     settings = get_settings()
-    client = AsyncMongoClient(settings.MONGODB_URI)
-    db = client[settings.MONGODB_DATABASE]
+    client = None
+    should_close = False
+    if db is None:
+        client = AsyncMongoClient(settings.MONGODB_URI)
+        db = client[settings.MONGODB_DATABASE]
+        should_close = True
 
     await ensure_indexes(db)
 
@@ -359,7 +364,8 @@ async def run_simulation(drop_existing: bool = False) -> dict:
     print(f" Simulation Status: {'SUCCEEDED (100% Verified)' if all_passed else 'FAILED'}")
     print("=" * 70 + "\n")
 
-    await client.close()
+    if should_close and client:
+        await client.close()
     return report
 
 
