@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { reportsApi, violationsApi } from "../../api";
-import type { AttendanceReportResponse, PolicyViolation } from "../../types";
+import type { AttendanceReportResponse, ComplianceHealthScore, PolicyViolation } from "../../types";
 import { StatCard } from "../../components/common/StatCard";
 import { StatusBadge } from "../../components/common/StatusBadge";
 import {
@@ -13,11 +13,14 @@ import {
   AlertTriangle,
   Mail,
   ArrowUpRight,
+  Activity,
+  AlertCircle,
 } from "lucide-react";
 
 export const AdminDashboard: React.FC = () => {
   const [report, setReport] = useState<AttendanceReportResponse | null>(null);
   const [violations, setViolations] = useState<PolicyViolation[]>([]);
+  const [healthScores, setHealthScores] = useState<ComplianceHealthScore[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -26,12 +29,14 @@ export const AdminDashboard: React.FC = () => {
       try {
         setLoading(true);
         setError(null);
-        const [reportData, violationsData] = await Promise.all([
+        const [reportData, violationsData, healthData] = await Promise.all([
           reportsApi.getReport({ period: "weekly" }),
           violationsApi.list(),
+          violationsApi.getHealthScores(),
         ]);
         setReport(reportData);
         setViolations(violationsData);
+        setHealthScores(healthData);
       } catch (err: any) {
         setError(err?.response?.data?.detail || "Failed to load dashboard metrics");
       } finally {
@@ -136,6 +141,97 @@ export const AdminDashboard: React.FC = () => {
           icon={<Mail className="h-5 w-5 text-sky-600" />}
           subtitle="Delivered alerts"
         />
+      </div>
+
+      {/* Continuous Compliance Health Scores (Rolling 4-Week History) */}
+      <div className="rounded-xl border border-slate-200 bg-white shadow-sm overflow-hidden">
+        <div className="flex items-center justify-between border-b border-slate-200 px-6 py-4">
+          <div className="flex items-center gap-2">
+            <Activity className="h-5 w-5 text-blue-600" />
+            <div>
+              <h2 className="text-base font-semibold text-slate-900">
+                Continuous Compliance Health Score (Rolling 4-Week History)
+              </h2>
+              <p className="text-xs text-slate-500">
+                Automated rolling health scores per employee to identify chronic under-hours patterns.
+              </p>
+            </div>
+          </div>
+          <Link
+            to="/violations"
+            className="flex items-center gap-1 text-xs font-medium text-blue-600 hover:text-blue-700"
+          >
+            Policy Violations <ArrowUpRight className="h-3.5 w-3.5" />
+          </Link>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 p-6 bg-slate-50/50">
+          {healthScores.slice(0, 8).map((score) => {
+            const isCritical = score.health_rating === 'CRITICAL';
+            const isAtRisk = score.health_rating === 'AT_RISK';
+            const isExcellent = score.health_rating === 'EXCELLENT';
+            return (
+              <div
+                key={score.employee_id}
+                className={`rounded-xl border p-4 bg-white shadow-2xs transition flex flex-col justify-between ${
+                  score.chronic_issue ? 'border-amber-300 ring-1 ring-amber-100' : 'border-slate-200'
+                }`}
+              >
+                <div>
+                  <div className="flex items-start justify-between gap-2">
+                    <div>
+                      <div className="font-semibold text-sm text-slate-900">{score.employee_name}</div>
+                      <div className="text-xs text-slate-400">{score.employee_id} • {score.department}</div>
+                    </div>
+                    <span
+                      className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider ${
+                        isExcellent
+                          ? 'bg-emerald-100 text-emerald-800'
+                          : isCritical
+                          ? 'bg-rose-100 text-rose-800'
+                          : isAtRisk
+                          ? 'bg-amber-100 text-amber-800'
+                          : 'bg-blue-100 text-blue-800'
+                      }`}
+                    >
+                      {score.health_rating}
+                    </span>
+                  </div>
+
+                  <div className="mt-4 flex items-baseline justify-between">
+                    <span className="text-2xl font-black text-slate-900">{score.health_score}%</span>
+                    <span className="text-xs font-medium text-slate-500">
+                      {score.compliant_weeks}/{score.total_evaluated_weeks} weeks passed
+                    </span>
+                  </div>
+
+                  {/* Progress Bar */}
+                  <div className="mt-2 h-1.5 w-full rounded-full bg-slate-100 overflow-hidden">
+                    <div
+                      className={`h-full rounded-full transition-all duration-300 ${
+                        isExcellent
+                          ? 'bg-emerald-500'
+                          : isCritical
+                          ? 'bg-rose-500'
+                          : isAtRisk
+                          ? 'bg-amber-500'
+                          : 'bg-blue-500'
+                      }`}
+                      style={{ width: `${score.health_score}%` }}
+                    />
+                  </div>
+                </div>
+
+                {score.chronic_issue && (
+                  <div className="mt-3 pt-2.5 border-t border-slate-100 flex items-center gap-1.5 text-xs text-amber-700 font-medium">
+                    <AlertCircle className="w-3.5 h-3.5 text-amber-500 shrink-0" />
+                    <span>Chronic Under-Hours Pattern</span>
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
       </div>
 
       {/* Live Table Section */}

@@ -143,6 +143,18 @@ export const AttendanceCalendar: React.FC<AttendanceCalendarProps> = ({
 
   const handleCellClick = (dateString: string, isPadding: boolean, isFuture: boolean) => {
     if (isPadding || isFuture) return;
+
+    // Guardrail: Max 14-day policy window
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const target = new Date(dateString);
+    target.setHours(0, 0, 0, 0);
+    const diffDays = Math.round((today.getTime() - target.getTime()) / (1000 * 3600 * 24));
+    if (diffDays > 14) {
+      alert('Attendance regularization must be submitted within 14 days of the work date.');
+      return;
+    }
+
     setSelectedDate(dateString);
     setReasonInput('');
     setModalMsg(null);
@@ -177,8 +189,11 @@ export const AttendanceCalendar: React.FC<AttendanceCalendarProps> = ({
         setModalOpen(false);
       }, 1400);
     } catch (err: unknown) {
+      const respData = (err as { response?: { data?: { message?: string; detail?: string } } })?.response?.data;
       const errorMsg =
-        (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail ||
+        respData?.message ||
+        respData?.detail ||
+        (err as Error)?.message ||
         'Failed to submit regularization request';
       setModalMsg({ type: 'error', text: errorMsg });
     } finally {

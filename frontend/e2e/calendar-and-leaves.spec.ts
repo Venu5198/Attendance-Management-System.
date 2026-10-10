@@ -68,9 +68,15 @@ test.describe('Calendar, Regularization & Leaves E2E Tests', () => {
     await page.click('button:has-text("Request Leave")');
     await expect(page.locator('text=Request Leave or Exemption')).toBeVisible();
 
-    // Fill form
-    await page.fill('input[type="date"] >> nth=0', '2026-11-09');
-    await page.fill('input[type="date"] >> nth=1', '2026-11-13');
+    // Fill form with unique non-overlapping date
+    // Fill form with unique non-overlapping date in year 2035
+    const month = String(Math.floor(Math.random() * 11) + 1).padStart(2, '0');
+    const day = String(Math.floor(Math.random() * 20) + 1).padStart(2, '0');
+    const startStr = `2035-${month}-${day}`;
+    const endStr = `2035-${month}-${day}`;
+
+    await page.fill('input[type="date"] >> nth=0', startStr);
+    await page.fill('input[type="date"] >> nth=1', endStr);
     await page.selectOption('select', 'VACATION');
     await page.fill('textarea', 'Annual family vacation leave');
 
@@ -79,7 +85,15 @@ test.describe('Calendar, Regularization & Leaves E2E Tests', () => {
 
     // Expect success alert and modal closed
     await expect(page.locator('text=Leave request submitted successfully!')).toBeVisible({ timeout: 10000 });
-    await expect(page.locator('text=Annual family vacation leave').first()).toBeVisible();
+
+    // Verify Guardrail 1: Submitting overlapping leave is intercepted
+    await page.click('button:has-text("Request Leave")');
+    await page.fill('input[type="date"] >> nth=0', startStr);
+    await page.fill('input[type="date"] >> nth=1', endStr);
+    await page.selectOption('select', 'CASUAL');
+    await page.fill('textarea', 'Attempting overlapping leave');
+    await page.click('button[type="submit"]:has-text("Submit Application")');
+    await expect(page.locator('text=conflicts with an existing').first()).toBeVisible({ timeout: 10000 });
   });
 
   test('admin reviews regularization approvals and leave exemptions', async ({ page }) => {
@@ -106,4 +120,23 @@ test.describe('Calendar, Regularization & Leaves E2E Tests', () => {
     await expect(page.locator('text=All Employee Leave Requests')).toBeVisible();
     await expect(page.locator('th:has-text("Employee")')).toBeVisible();
   });
+
+  test('admin dashboard renders continuous compliance health score cards', async ({ page }) => {
+    await page.goto('/login');
+    await page.fill('input[type="text"]', 'admin');
+    await page.fill('input[type="password"]', 'AdminPass123!');
+    await page.click('button[type="submit"]');
+
+    await expect(page).toHaveURL(/.*\/dashboard/);
+
+    // Verify Continuous Compliance Health Score Section
+    await expect(
+      page.locator('text=Continuous Compliance Health Score (Rolling 4-Week History)')
+    ).toBeVisible({ timeout: 10000 });
+    await expect(
+      page.locator('text=Automated rolling health scores per employee to identify chronic under-hours patterns.')
+    ).toBeVisible();
+    await expect(page.locator('text=Policy Violations').first()).toBeVisible();
+  });
 });
+

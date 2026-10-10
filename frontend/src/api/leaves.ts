@@ -25,4 +25,13 @@ export const leavesApi = {
     });
     return response.data;
   },
+
+  bulkReviewLeaves: async (data: {
+    leave_ids: string[];
+    action: "APPROVED" | "REJECTED";
+    admin_notes?: string;
+  }): Promise<{ total_requested: number; success_count: number; failed_count: number; updated_ids: string[]; errors: string[] }> => {
+    const response = await apiClient.post("/leaves/bulk-review", data);
+    return response.data;
+  },
 };

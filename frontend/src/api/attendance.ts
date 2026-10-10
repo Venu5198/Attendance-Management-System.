@@ -73,4 +73,14 @@ export const attendanceApi = {
     );
     return response.data;
   },
+
+  bulkReviewRegularizations: async (data: {
+    request_ids: string[];
+    action: "APPROVED" | "REJECTED";
+    admin_notes?: string;
+  }): Promise<{ total_requested: number; success_count: number; failed_count: number; updated_ids: string[]; errors: string[] }> => {
+    const response = await apiClient.post("/attendance/regularize/bulk-review", data);
+    return response.data;
+  },
 };
+

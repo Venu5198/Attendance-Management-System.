@@ -10,9 +10,13 @@ export const RegularizationReviewPanel: React.FC = () => {
   const [processingId, setProcessingId] = useState<string | null>(null);
   const [msg, setMsg] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [bulkLoading, setBulkLoading] = useState(false);
+
   const fetchRequests = async () => {
     try {
       setLoading(true);
+      setSelectedIds([]);
       const filter = statusFilter === 'ALL' ? undefined : statusFilter;
       const data = await attendanceApi.getRegularizations(undefined, filter);
       setRequests(data);
@@ -45,6 +49,49 @@ export const RegularizationReviewPanel: React.FC = () => {
     } finally {
       setProcessingId(null);
     }
+  };
+
+  const handleBulkAction = async (action: 'APPROVED' | 'REJECTED') => {
+    if (selectedIds.length === 0) return;
+    try {
+      setBulkLoading(true);
+      setMsg(null);
+      const res = await attendanceApi.bulkReviewRegularizations({
+        request_ids: selectedIds,
+        action,
+        admin_notes: `Batch ${action.toLowerCase()} by HR Administrator`,
+      });
+      setMsg({
+        type: 'success',
+        text: `Batch completed: ${res.success_count} approved/rejected successfully${
+          res.failed_count > 0 ? `, ${res.failed_count} failed` : ''
+        }.`,
+      });
+      setSelectedIds([]);
+      await fetchRequests();
+    } catch (err: unknown) {
+      const errorMsg =
+        (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail ||
+        'Batch operation failed.';
+      setMsg({ type: 'error', text: errorMsg });
+    } finally {
+      setBulkLoading(false);
+    }
+  };
+
+  const toggleSelectAll = () => {
+    const pendingIds = requests.filter((r) => r.status === 'PENDING').map((r) => r.request_id);
+    if (selectedIds.length === pendingIds.length && pendingIds.length > 0) {
+      setSelectedIds([]);
+    } else {
+      setSelectedIds(pendingIds);
+    }
+  };
+
+  const toggleSelectOne = (id: string) => {
+    setSelectedIds((prev) =>
+      prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id]
+    );
   };
 
   const formatDateTime = (iso?: string | null) => {
@@ -96,12 +143,60 @@ export const RegularizationReviewPanel: React.FC = () => {
         </div>
       )}
 
+      {/* Bulk Action Banner */}
+      {selectedIds.length > 0 && (
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 bg-blue-50/90 border border-blue-200 p-3.5 rounded-xl">
+          <div className="flex items-center gap-2">
+            <CheckCircle2 className="w-4 h-4 text-blue-600" />
+            <span className="text-xs font-bold text-blue-900">
+              {selectedIds.length} request{selectedIds.length > 1 ? 's' : ''} selected
+            </span>
+          </div>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => handleBulkAction('APPROVED')}
+              disabled={bulkLoading}
+              className="px-3 py-1.5 text-xs font-semibold bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg transition flex items-center gap-1.5 shadow-2xs disabled:opacity-50"
+            >
+              <Check className="w-3.5 h-3.5" />
+              Batch Approve ({selectedIds.length})
+            </button>
+            <button
+              onClick={() => handleBulkAction('REJECTED')}
+              disabled={bulkLoading}
+              className="px-3 py-1.5 text-xs font-semibold bg-rose-600 hover:bg-rose-700 text-white rounded-lg transition flex items-center gap-1.5 shadow-2xs disabled:opacity-50"
+            >
+              <X className="w-3.5 h-3.5" />
+              Batch Reject ({selectedIds.length})
+            </button>
+            <button
+              onClick={() => setSelectedIds([])}
+              className="px-2 py-1.5 text-xs text-slate-500 hover:text-slate-800"
+            >
+              Clear
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Requests Table */}
       <div className="border border-slate-200 rounded-xl overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-sm text-left text-slate-600">
             <thead className="text-xs uppercase bg-slate-50 text-slate-500 border-b border-slate-200">
               <tr>
+                <th className="px-4 py-3 w-10">
+                  <input
+                    type="checkbox"
+                    aria-label="Select all pending"
+                    checked={
+                      requests.filter((r) => r.status === 'PENDING').length > 0 &&
+                      selectedIds.length === requests.filter((r) => r.status === 'PENDING').length
+                    }
+                    onChange={toggleSelectAll}
+                    className="w-4 h-4 rounded text-blue-600 focus:ring-blue-500 border-slate-300 cursor-pointer"
+                  />
+                </th>
                 <th className="px-5 py-3 font-semibold">Employee</th>
                 <th className="px-5 py-3 font-semibold">Target Date</th>
                 <th className="px-5 py-3 font-semibold">Corrected Window</th>
@@ -114,19 +209,29 @@ export const RegularizationReviewPanel: React.FC = () => {
             <tbody className="divide-y divide-slate-100">
               {loading ? (
                 <tr>
-                  <td colSpan={7} className="text-center py-8 text-slate-400">
+                  <td colSpan={8} className="text-center py-8 text-slate-400">
                     Loading regularization requests...
                   </td>
                 </tr>
               ) : requests.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="text-center py-8 text-slate-400">
+                  <td colSpan={8} className="text-center py-8 text-slate-400">
                     No regularization requests found for status "{statusFilter}".
                   </td>
                 </tr>
               ) : (
                 requests.map((req) => (
                   <tr key={req.request_id} className="hover:bg-slate-50/60 transition">
+                    <td className="px-4 py-3.5">
+                      {req.status === 'PENDING' ? (
+                        <input
+                          type="checkbox"
+                          checked={selectedIds.includes(req.request_id)}
+                          onChange={() => toggleSelectOne(req.request_id)}
+                          className="w-4 h-4 rounded text-blue-600 focus:ring-blue-500 border-slate-300 cursor-pointer"
+                        />
+                      ) : null}
+                    </td>
                     <td className="px-5 py-3.5 font-semibold text-slate-900">{req.employee_id}</td>
                     <td className="px-5 py-3.5 font-medium text-slate-700">{req.work_date}</td>
                     <td className="px-5 py-3.5 text-xs text-slate-600">

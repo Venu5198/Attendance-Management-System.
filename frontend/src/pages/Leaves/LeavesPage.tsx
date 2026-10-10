@@ -29,12 +29,16 @@ export const LeavesPage: React.FC = () => {
   const [reason, setReason] = useState('');
   const [submitting, setSubmitting] = useState(false);
 
+  const [selectedLeaveIds, setSelectedLeaveIds] = useState<string[]>([]);
+  const [bulkLoading, setBulkLoading] = useState(false);
+
   const isAdmin = user?.role === 'ADMIN';
   const empId = user?.employee_id || 'EMP001';
 
   const fetchLeaves = async () => {
     try {
       setLoading(true);
+      setSelectedLeaveIds([]);
       const filter = statusFilter === 'ALL' ? undefined : statusFilter;
       // If employee, backend filters by their token unless admin
       const data = await leavesApi.getLeaves(isAdmin ? undefined : empId, filter);
@@ -49,6 +53,49 @@ export const LeavesPage: React.FC = () => {
   useEffect(() => {
     fetchLeaves();
   }, [statusFilter, user]);
+
+  const handleBulkReview = async (action: 'APPROVED' | 'REJECTED') => {
+    if (selectedLeaveIds.length === 0) return;
+    try {
+      setBulkLoading(true);
+      setMsg(null);
+      const res = await leavesApi.bulkReviewLeaves({
+        leave_ids: selectedLeaveIds,
+        action,
+        admin_notes: `Batch ${action.toLowerCase()} by HR Administrator`,
+      });
+      setMsg({
+        type: 'success',
+        text: `Batch action completed: ${res.success_count} leave(s) updated${
+          res.failed_count > 0 ? `, ${res.failed_count} failed` : ''
+        }.`,
+      });
+      setSelectedLeaveIds([]);
+      await fetchLeaves();
+    } catch (err: unknown) {
+      const errorMsg =
+        (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail ||
+        'Batch action failed.';
+      setMsg({ type: 'error', text: errorMsg });
+    } finally {
+      setBulkLoading(false);
+    }
+  };
+
+  const toggleSelectAll = () => {
+    const pendingIds = leaves.filter((l) => l.status === 'PENDING').map((l) => l.leave_id);
+    if (selectedLeaveIds.length === pendingIds.length && pendingIds.length > 0) {
+      setSelectedLeaveIds([]);
+    } else {
+      setSelectedLeaveIds(pendingIds);
+    }
+  };
+
+  const toggleSelectOne = (id: string) => {
+    setSelectedLeaveIds((prev) =>
+      prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id]
+    );
+  };
 
   const handleSubmitLeave = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -70,8 +117,11 @@ export const LeavesPage: React.FC = () => {
       setReason('');
       await fetchLeaves();
     } catch (err: unknown) {
+      const respData = (err as { response?: { data?: { message?: string; detail?: string } } })?.response?.data;
       const errorMsg =
-        (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail ||
+        respData?.message ||
+        respData?.detail ||
+        (err as Error)?.message ||
         'Failed to submit leave request.';
       setMsg({ type: 'error', text: errorMsg });
     } finally {
@@ -199,12 +249,62 @@ export const LeavesPage: React.FC = () => {
           </div>
         </div>
 
+        {/* Bulk Action Banner for Admin */}
+        {isAdmin && selectedLeaveIds.length > 0 && (
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 bg-blue-50/90 border border-blue-200 p-3.5 rounded-xl">
+            <div className="flex items-center gap-2">
+              <CheckCircle2 className="w-4 h-4 text-blue-600" />
+              <span className="text-xs font-bold text-blue-900">
+                {selectedLeaveIds.length} leave application{selectedLeaveIds.length > 1 ? 's' : ''} selected
+              </span>
+            </div>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => handleBulkReview('APPROVED')}
+                disabled={bulkLoading}
+                className="px-3 py-1.5 text-xs font-semibold bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg transition flex items-center gap-1.5 shadow-2xs disabled:opacity-50"
+              >
+                <Check className="w-3.5 h-3.5" />
+                Batch Approve ({selectedLeaveIds.length})
+              </button>
+              <button
+                onClick={() => handleBulkReview('REJECTED')}
+                disabled={bulkLoading}
+                className="px-3 py-1.5 text-xs font-semibold bg-rose-600 hover:bg-rose-700 text-white rounded-lg transition flex items-center gap-1.5 shadow-2xs disabled:opacity-50"
+              >
+                <X className="w-3.5 h-3.5" />
+                Batch Reject ({selectedLeaveIds.length})
+              </button>
+              <button
+                onClick={() => setSelectedLeaveIds([])}
+                className="px-2 py-1.5 text-xs text-slate-500 hover:text-slate-800"
+              >
+                Clear
+              </button>
+            </div>
+          </div>
+        )}
+
         {/* Leaves Table */}
         <div className="border border-slate-200 rounded-xl overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full text-sm text-left text-slate-600">
               <thead className="text-xs uppercase bg-slate-50 text-slate-500 border-b border-slate-200">
                 <tr>
+                  {isAdmin && (
+                    <th className="px-4 py-3 w-10">
+                      <input
+                        type="checkbox"
+                        aria-label="Select all pending leaves"
+                        checked={
+                          leaves.filter((l) => l.status === 'PENDING').length > 0 &&
+                          selectedLeaveIds.length === leaves.filter((l) => l.status === 'PENDING').length
+                        }
+                        onChange={toggleSelectAll}
+                        className="w-4 h-4 rounded text-blue-600 focus:ring-blue-500 border-slate-300 cursor-pointer"
+                      />
+                    </th>
+                  )}
                   {isAdmin && <th className="px-5 py-3 font-semibold">Employee</th>}
                   <th className="px-5 py-3 font-semibold">Duration</th>
                   <th className="px-5 py-3 font-semibold">Category</th>
@@ -216,19 +316,31 @@ export const LeavesPage: React.FC = () => {
               <tbody className="divide-y divide-slate-100">
                 {loading ? (
                   <tr>
-                    <td colSpan={isAdmin ? 6 : 5} className="text-center py-8 text-slate-400">
+                    <td colSpan={isAdmin ? 7 : 5} className="text-center py-8 text-slate-400">
                       Loading leave requests...
                     </td>
                   </tr>
                 ) : leaves.length === 0 ? (
                   <tr>
-                    <td colSpan={isAdmin ? 6 : 5} className="text-center py-8 text-slate-400">
+                    <td colSpan={isAdmin ? 7 : 5} className="text-center py-8 text-slate-400">
                       No leave requests found.
                     </td>
                   </tr>
                 ) : (
                   leaves.map((leave) => (
                     <tr key={leave.leave_id} className="hover:bg-slate-50/60 transition">
+                      {isAdmin && (
+                        <td className="px-4 py-3.5">
+                          {leave.status === 'PENDING' ? (
+                            <input
+                              type="checkbox"
+                              checked={selectedLeaveIds.includes(leave.leave_id)}
+                              onChange={() => toggleSelectOne(leave.leave_id)}
+                              className="w-4 h-4 rounded text-blue-600 focus:ring-blue-500 border-slate-300 cursor-pointer"
+                            />
+                          ) : null}
+                        </td>
+                      )}
                       {isAdmin && (
                         <td className="px-5 py-3.5 font-semibold text-slate-900">
                           {leave.employee_id}
@@ -301,6 +413,13 @@ export const LeavesPage: React.FC = () => {
                 <X className="w-5 h-5" />
               </button>
             </div>
+
+            {msg && msg.type === 'error' && (
+              <div className="p-3 rounded-xl text-xs font-semibold bg-rose-50 text-rose-800 border border-rose-200 flex items-center gap-2">
+                <AlertCircle className="w-4 h-4 shrink-0" />
+                <span>{msg.text}</span>
+              </div>
+            )}
 
             <form onSubmit={handleSubmitLeave} className="space-y-4">
               <div className="grid grid-cols-2 gap-3">

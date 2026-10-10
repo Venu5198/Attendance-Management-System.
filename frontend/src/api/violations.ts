@@ -30,4 +30,12 @@ export const violationsApi = {
     });
     return response.data;
   },
+
+  getHealthScores: async (employeeId?: string): Promise<import("../types").ComplianceHealthScore[]> => {
+    const response = await apiClient.get<import("../types").ComplianceHealthScore[]>("/violations/health-scores", {
+      params: employeeId ? { employee_id: employeeId } : {},
+    });
+    return response.data;
+  },
 };
+

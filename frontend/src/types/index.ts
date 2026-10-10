@@ -202,3 +202,36 @@ export interface LeaveRequestCreate {
   employee_id?: string;
 }
 
+export interface BulkReviewResponse {
+  total_requested: number;
+  success_count: number;
+  failed_count: number;
+  updated_ids: string[];
+  errors: string[];
+}
+
+export interface WeeklyScoreRecord {
+  week_start: string;
+  week_end: string;
+  week_label: string;
+  office_days: number;
+  total_office_hours: number;
+  required_days: number;
+  required_hours: number;
+  status: ComplianceStatus;
+  violation_reasons: string[];
+}
+
+export interface ComplianceHealthScore {
+  employee_id: string;
+  employee_name: string;
+  department: string;
+  health_score: number;
+  health_rating: "EXCELLENT" | "GOOD" | "AT_RISK" | "CRITICAL";
+  compliant_weeks: number;
+  total_evaluated_weeks: number;
+  chronic_issue: boolean;
+  weekly_history: WeeklyScoreRecord[];
+}
+
+
