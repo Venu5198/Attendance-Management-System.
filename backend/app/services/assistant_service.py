@@ -1,10 +1,18 @@
 """Natural Language Assistant service for parsing queries and answering compliance/attendance questions."""
 
+import re
+from datetime import UTC, date, datetime, timedelta
+
+from fastapi import HTTPException
 from pymongo.asynchronous.database import AsyncDatabase
 
 from app.config import get_settings
 from app.schemas.assistant import AssistantQueryResponse
-from app.utils.time_utils import get_week_boundaries, get_work_date, now_utc
+from app.schemas.leave import LeaveRequestCreate, LeaveType
+from app.schemas.regularization import RegularizationRequestCreate
+from app.services.leave_service import LeaveService
+from app.services.regularization_service import RegularizationService
+from app.utils.time_utils import get_company_tz, get_week_boundaries, get_work_date, now_utc
 
 
 class AssistantService:
@@ -23,11 +31,42 @@ class AssistantService:
         role = current_user.get("role", "EMPLOYEE")
         emp_id = current_user.get("employee_id") or ""
 
-        # 1. Intent: Holidays
+        # 1. Action: Apply / Request Leave or WFH Exemption
+        if any(
+            phrase in q
+            for phrase in [
+                "apply leave",
+                "request leave",
+                "take leave",
+                "apply for leave",
+                "apply wfh",
+                "request wfh",
+                "request remote",
+                "apply sick",
+                "submit leave",
+            ]
+        ):
+            return await self._handle_create_leave(query, role, emp_id)
+
+        # 2. Action: Regularization / Missed punch correction
+        if any(
+            phrase in q
+            for phrase in [
+                "regularize",
+                "regularization",
+                "missed punch",
+                "adjust attendance",
+                "correct attendance",
+                "fix attendance",
+            ]
+        ):
+            return await self._handle_create_regularization(query, role, emp_id)
+
+        # 3. Inquiry: Holidays
         if any(w in q for w in ["holiday", "holidays", "day off", "days off", "festival", "vacation calendar"]):
             return await self._handle_holidays(q)
 
-        # 2. Intent: Non-compliant / Policy Violations
+        # 4. Inquiry: Non-compliant / Policy Violations
         if any(
             w in q
             for w in [
@@ -43,11 +82,11 @@ class AssistantService:
         ):
             return await self._handle_violations(q, role, emp_id)
 
-        # 3. Intent: Leaves / Time Off
+        # 5. Inquiry: Leaves / Time Off Status
         if any(w in q for w in ["leave", "leaves", "time off", "vacation request", "sick leave", "remote exception"]):
             return await self._handle_leaves(q, role, emp_id)
 
-        # 4. Intent: Who is checked in / In office today
+        # 6. Inquiry: Who is checked in / In office today
         if any(
             w in q
             for w in [
@@ -62,7 +101,7 @@ class AssistantService:
         ):
             return await self._handle_today_presence(q, role)
 
-        # 5. Intent: Personal Hours / Compliance Progress
+        # 7. Inquiry: Personal Hours / Compliance Progress
         if any(
             w in q
             for w in [
@@ -78,8 +117,180 @@ class AssistantService:
         ):
             return await self._handle_my_hours(emp_id)
 
-        # 6. Fallback intent
+        # 8. Fallback intent
         return self._handle_fallback(q, role)
+
+    async def _handle_create_leave(self, query: str, role: str, emp_id: str) -> AssistantQueryResponse:
+        if not emp_id:
+            return AssistantQueryResponse(
+                query=query,
+                intent="ACTION_ERROR",
+                headline="Employee Profile Required",
+                answer="Cannot submit a leave request without an active employee profile.",
+                action_url="/employees",
+            )
+
+        q = query.lower()
+        today = datetime.now(UTC).date()
+
+        # Extract dates
+        dates = re.findall(r"\b(\d{4}-\d{2}-\d{2})\b", query)
+        if dates:
+            start_date = dates[0]
+            end_date = dates[1] if len(dates) > 1 else dates[0]
+        elif "tomorrow" in q:
+            start_date = end_date = (today + timedelta(days=1)).isoformat()
+        elif "today" in q:
+            start_date = end_date = today.isoformat()
+        else:
+            return AssistantQueryResponse(
+                query=query,
+                intent="LEAVE_ACTION_INCOMPLETE",
+                headline="Dates Required for Leave",
+                answer="Please provide target date(s) in YYYY-MM-DD format (e.g. 'Request leave for 2026-10-15').",
+                action_url="/leaves",
+                suggestions=["Apply leave for 2026-10-20 to 2026-10-21 reason vacation", "Upcoming holidays"],
+            )
+
+        # Extract leave type
+        if "sick" in q:
+            leave_type = LeaveType.SICK
+        elif "casual" in q:
+            leave_type = LeaveType.CASUAL
+        elif "remote" in q or "wfh" in q or "exception" in q:
+            leave_type = LeaveType.REMOTE_EXCEPTION
+        else:
+            leave_type = LeaveType.VACATION
+
+        # Extract reason
+        reason_match = re.search(r"(?:because|reason|due to|for)\s+(.+)", query, re.IGNORECASE)
+        reason = reason_match.group(1).strip() if reason_match else "Leave requested via AI Assistant"
+
+        leave_service = LeaveService(self.db)
+        try:
+            req_in = LeaveRequestCreate(
+                start_date=start_date,
+                end_date=end_date,
+                leave_type=leave_type,
+                reason=reason[:500],
+            )
+            created = await leave_service.create_leave_request(emp_id, req_in)
+            answer = (
+                f"Successfully submitted {leave_type.value} leave request for {start_date} "
+                f"to {end_date} (Status: {created.status.value}). Reason: '{reason}'."
+            )
+            return AssistantQueryResponse(
+                query=query,
+                intent="LEAVE_CREATED",
+                headline=f"{leave_type.value} Leave Submitted",
+                answer=answer,
+                action_url="/leaves",
+                data={
+                    "leave_id": created.leave_id,
+                    "start_date": created.start_date,
+                    "end_date": created.end_date,
+                    "leave_type": created.leave_type.value,
+                    "status": created.status.value,
+                },
+                suggestions=["Show my leave requests", "My hours this week"],
+            )
+        except HTTPException as exc:
+            return AssistantQueryResponse(
+                query=query,
+                intent="ACTION_REJECTED",
+                headline="Leave Request Intercepted",
+                answer=f"Could not submit leave: {exc.detail}",
+                action_url="/leaves",
+                suggestions=["Show my leave requests", "Upcoming company holidays"],
+            )
+
+    async def _handle_create_regularization(self, query: str, role: str, emp_id: str) -> AssistantQueryResponse:
+        if not emp_id:
+            return AssistantQueryResponse(
+                query=query,
+                intent="ACTION_ERROR",
+                headline="Employee Profile Required",
+                answer="Cannot regularize attendance without an active employee profile.",
+                action_url="/employees",
+            )
+
+        q = query.lower()
+        today = datetime.now(UTC).date()
+
+        # Extract target work_date
+        dates = re.findall(r"\b(\d{4}-\d{2}-\d{2})\b", query)
+        if dates:
+            target_date_str = dates[0]
+            target_date = date.fromisoformat(target_date_str)
+        elif "yesterday" in q:
+            target_date = today - timedelta(days=1)
+            target_date_str = target_date.isoformat()
+        elif "today" in q:
+            target_date = today
+            target_date_str = target_date.isoformat()
+        else:
+            return AssistantQueryResponse(
+                query=query,
+                intent="REGULARIZATION_ACTION_INCOMPLETE",
+                headline="Work Date Required",
+                answer="Please specify the date to regularize (e.g. 'Regularize 2026-10-05 missed punch').",
+                action_url="/attendance",
+                suggestions=["Regularize 2026-10-06 missed punch", "How many hours have I worked?"],
+            )
+
+        # Extract entry/exit times if specified, else default to standard 09:30 to 18:30
+        times = re.findall(r"\b(\d{1,2}:\d{2})\b", query)
+        if len(times) >= 2:
+            entry_hour, entry_min = map(int, times[0].split(":"))
+            exit_hour, exit_min = map(int, times[1].split(":"))
+        else:
+            entry_hour, entry_min = 9, 30
+            exit_hour, exit_min = 18, 30
+
+        tz = get_company_tz()
+        entry_time = datetime(target_date.year, target_date.month, target_date.day, entry_hour, entry_min, tzinfo=tz)
+        exit_time = datetime(target_date.year, target_date.month, target_date.day, exit_hour, exit_min, tzinfo=tz)
+
+        reason_match = re.search(r"(?:because|reason|due to|for)\s+(.+)", query, re.IGNORECASE)
+        reason = reason_match.group(1).strip() if reason_match else "Missed clock-in/out regularized via AI Assistant"
+
+        reg_service = RegularizationService(self.db)
+        try:
+            req_in = RegularizationRequestCreate(
+                work_date=target_date_str,
+                entry_time=entry_time,
+                exit_time=exit_time,
+                reason=reason[:500],
+            )
+            created = await reg_service.create_request(emp_id, req_in)
+            answer = (
+                f"Successfully submitted regularization request for {target_date_str} "
+                f"({entry_hour:02d}:{entry_min:02d} - {exit_hour:02d}:{exit_min:02d}). "
+                f"Status: {created.status.value}. Reason: '{reason}'."
+            )
+            return AssistantQueryResponse(
+                query=query,
+                intent="REGULARIZATION_CREATED",
+                headline="Regularization Request Submitted",
+                answer=answer,
+                action_url="/attendance",
+                data={
+                    "request_id": created.request_id,
+                    "work_date": created.work_date,
+                    "duration_hours": created.duration_hours,
+                    "status": created.status.value,
+                },
+                suggestions=["Show my attendance history", "My hours this week"],
+            )
+        except HTTPException as exc:
+            return AssistantQueryResponse(
+                query=query,
+                intent="ACTION_REJECTED",
+                headline="Regularization Guardrail",
+                answer=f"Could not submit regularization: {exc.detail}",
+                action_url="/attendance",
+                suggestions=["How many hours have I worked this week?", "Upcoming company holidays"],
+            )
 
     async def _handle_holidays(self, query: str) -> AssistantQueryResponse:
         today = get_work_date(now_utc())

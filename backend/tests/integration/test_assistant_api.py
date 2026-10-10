@@ -133,3 +133,54 @@ async def test_assistant_query_today_presence(async_client: AsyncClient, seed_em
     data = resp.json()
     assert data["intent"] == "TODAY_PRESENCE"
     assert data["data"]["active_now"] >= 1
+
+
+@pytest.mark.asyncio
+async def test_assistant_action_create_leave_success(async_client: AsyncClient, seed_employee_user, test_db):
+    headers = seed_employee_user["headers"]
+    emp_id = seed_employee_user["employee"]["employee_id"]
+
+    resp = await async_client.post(
+        "/api/v1/assistant/query",
+        json={"query": "Please apply sick leave for 2026-11-12 to 2026-11-13 because severe flu"},
+        headers=headers,
+    )
+    assert resp.status_code == 200
+    data = resp.json()
+    assert data["intent"] == "LEAVE_CREATED"
+    assert "SICK" in data["headline"]
+    assert data["data"]["status"] == "PENDING"
+
+    # Verify document exists in database
+    saved = await test_db.leaves.find_one({"employee_id": emp_id, "start_date": "2026-11-12"})
+    assert saved is not None
+    assert saved["leave_type"] == "SICK"
+    assert "severe flu" in saved["reason"]
+
+
+@pytest.mark.asyncio
+async def test_assistant_action_create_regularization_success(async_client: AsyncClient, seed_employee_user, test_db):
+    headers = seed_employee_user["headers"]
+    emp_id = seed_employee_user["employee"]["employee_id"]
+
+    from datetime import timedelta
+
+    from app.utils.time_utils import now_utc
+
+    # Target 3 days in the past (safely within 14-day policy limit and not in future)
+    target_d = (now_utc().date() - timedelta(days=3)).isoformat()
+
+    resp = await async_client.post(
+        "/api/v1/assistant/query",
+        json={"query": f"regularize attendance on {target_d} from 09:30 to 18:30 reason client onsite meeting"},
+        headers=headers,
+    )
+    assert resp.status_code == 200
+    data = resp.json()
+    assert data["intent"] == "REGULARIZATION_CREATED"
+    assert data["data"]["status"] == "PENDING"
+
+    # Verify document exists in regularizations collection
+    reg_doc = await test_db.attendance_regularizations.find_one({"employee_id": emp_id, "work_date": target_d})
+    assert reg_doc is not None
+    assert reg_doc["duration_hours"] == 9.0
