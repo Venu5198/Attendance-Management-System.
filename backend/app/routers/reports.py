@@ -6,9 +6,11 @@ from fastapi import APIRouter, Depends, Query
 from pymongo.asynchronous.database import AsyncDatabase
 
 from app.database import get_database
-from app.dependencies import get_current_user
-from app.schemas.report import AttendanceReportResponse, ReportPeriod
+from app.dependencies import get_current_user, require_admin
+from app.schemas.report import AttendanceReportResponse, EmailReportRequest, ReportPeriod
+from app.services.email_service import EmailService
 from app.services.report_service import ReportService
+
 
 router = APIRouter(prefix="/attendance", tags=["Reporting"])
 
@@ -60,3 +62,51 @@ async def get_attendance_report(
         end_date=end_date,
         employee_id_filter=filter_emp_id,
     )
+
+
+@router.post(
+    "/report/email",
+    summary="Email Attendance Report to specified mail id (Admin only)",
+)
+async def email_attendance_report(
+    req: EmailReportRequest,
+    current_admin: Annotated[dict, Depends(require_admin)],
+    db: Annotated[AsyncDatabase, Depends(get_database)],
+):
+    """
+    Generate and email attendance report to any destination mail address via configured SMTP/email provider.
+    """
+    service = ReportService(db)
+    report_data = await service.generate_report(
+        period=req.period,
+        target_date=req.target_date,
+        start_date=req.start_date,
+        end_date=req.end_date,
+        employee_id_filter=req.employee_id,
+    )
+
+    email_service = EmailService(db)
+    success = await email_service.send_report_email(
+        recipient_email=req.recipient_email,
+        period=req.period.value,
+        start_date=report_data.metadata.start_date,
+        end_date=report_data.metadata.end_date,
+        summary=report_data.summary.model_dump(),
+        employees=[e.model_dump() for e in report_data.employees],
+    )
+
+    if not success:
+        from fastapi import HTTPException, status
+
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to send report email. Check SMTP settings and server logs.",
+        )
+
+    return {
+        "message": f"Attendance report successfully emailed to {req.recipient_email}",
+        "recipient": req.recipient_email,
+        "period": req.period,
+        "date_range": f"{report_data.metadata.start_date} to {report_data.metadata.end_date}",
+    }
+

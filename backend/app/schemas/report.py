@@ -64,3 +64,13 @@ class AttendanceReportResponse(BaseModel):
     metadata: ReportMetadata
     summary: CompanyReportSummary
     employees: list[EmployeeReportItem]
+
+
+class EmailReportRequest(BaseModel):
+    recipient_email: str
+    period: ReportPeriod = ReportPeriod.WEEKLY
+    target_date: str | None = None
+    start_date: str | None = None
+    end_date: str | None = None
+    employee_id: str | None = None
+
