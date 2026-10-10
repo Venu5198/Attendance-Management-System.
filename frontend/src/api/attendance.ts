@@ -35,4 +35,42 @@ export const attendanceApi = {
     });
     return response.data;
   },
+
+  submitRegularization: async (
+    data: import("../types").RegularizationCreate
+  ): Promise<import("../types").RegularizationRequest> => {
+    const response = await apiClient.post<import("../types").RegularizationRequest>(
+      "/attendance/regularize",
+      data
+    );
+    return response.data;
+  },
+
+  getRegularizations: async (
+    employeeId?: string,
+    status?: string
+  ): Promise<import("../types").RegularizationRequest[]> => {
+    const response = await apiClient.get<import("../types").RegularizationRequest[]>(
+      "/attendance/regularize",
+      {
+        params: { employee_id: employeeId, status },
+      }
+    );
+    return response.data;
+  },
+
+  reviewRegularization: async (
+    requestId: string,
+    action: "APPROVED" | "REJECTED",
+    adminNotes?: string
+  ): Promise<import("../types").RegularizationRequest> => {
+    const response = await apiClient.patch<import("../types").RegularizationRequest>(
+      `/attendance/regularize/${requestId}`,
+      {
+        action,
+        admin_notes: adminNotes,
+      }
+    );
+    return response.data;
+  },
 };

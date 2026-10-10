@@ -4,3 +4,4 @@ export * from './employees';
 export * from './attendance';
 export * from './reports';
 export * from './violations';
+export * from './leaves';

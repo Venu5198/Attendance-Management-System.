@@ -17,6 +17,7 @@ export interface User {
 
 export interface LoginResponse {
   access_token: string;
+  refresh_token?: string | null;
   token_type: string;
   expires_in_seconds: number;
   user_id: string;
@@ -56,6 +57,30 @@ export interface AttendanceRecord {
   attendance_status: AttendanceStatus;
   created_at?: string | null;
   updated_at?: string | null;
+}
+
+export interface RegularizationRequest {
+  request_id: string;
+  employee_id: string;
+  work_date: string;
+  entry_time: string;
+  exit_time: string;
+  duration_seconds: number;
+  duration_hours: number;
+  reason: string;
+  status: "PENDING" | "APPROVED" | "REJECTED";
+  submitted_at: string;
+  reviewed_by?: string | null;
+  reviewed_at?: string | null;
+  admin_notes?: string | null;
+}
+
+export interface RegularizationCreate {
+  work_date: string;
+  entry_time: string;
+  exit_time: string;
+  reason: string;
+  employee_id?: string;
 }
 
 export interface WeeklyComplianceResult {
@@ -151,3 +176,29 @@ export interface AttendanceReportResponse {
   summary: CompanyReportSummary;
   employees: EmployeeReportItem[];
 }
+
+export type LeaveType = "VACATION" | "SICK" | "CASUAL" | "REMOTE_EXCEPTION";
+export type LeaveStatus = "PENDING" | "APPROVED" | "REJECTED";
+
+export interface LeaveRequest {
+  leave_id: string;
+  employee_id: string;
+  start_date: string;
+  end_date: string;
+  leave_type: LeaveType;
+  status: LeaveStatus;
+  reason: string;
+  submitted_at: string;
+  reviewed_by?: string | null;
+  reviewed_at?: string | null;
+  admin_notes?: string | null;
+}
+
+export interface LeaveRequestCreate {
+  start_date: string;
+  end_date: string;
+  leave_type?: LeaveType;
+  reason: string;
+  employee_id?: string;
+}
+

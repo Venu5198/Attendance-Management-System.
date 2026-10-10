@@ -8,6 +8,7 @@ import {
   BarChart3,
   AlertTriangle,
   User,
+  CalendarDays,
 } from "lucide-react";
 
 export const Sidebar: React.FC = () => {
@@ -18,6 +19,7 @@ export const Sidebar: React.FC = () => {
     { to: "/dashboard", label: "Admin Dashboard", icon: <LayoutDashboard className="h-4 w-4" /> },
     { to: "/employees", label: "Employees", icon: <Users className="h-4 w-4" /> },
     { to: "/attendance", label: "Live Attendance", icon: <Clock className="h-4 w-4" /> },
+    { to: "/leaves", label: "Leaves & Exemptions", icon: <CalendarDays className="h-4 w-4" /> },
     { to: "/reports", label: "Central Reports", icon: <BarChart3 className="h-4 w-4" /> },
     { to: "/violations", label: "Policy Violations", icon: <AlertTriangle className="h-4 w-4" /> },
   ];
@@ -25,6 +27,7 @@ export const Sidebar: React.FC = () => {
   const employeeLinks = [
     { to: "/dashboard/employee", label: "My Dashboard", icon: <LayoutDashboard className="h-4 w-4" /> },
     { to: "/attendance", label: "Check In / Out", icon: <Clock className="h-4 w-4" /> },
+    { to: "/leaves", label: "Request Leave", icon: <CalendarDays className="h-4 w-4" /> },
     { to: "/reports", label: "My Attendance Report", icon: <BarChart3 className="h-4 w-4" /> },
     { to: "/profile", label: "My Profile", icon: <User className="h-4 w-4" /> },
   ];

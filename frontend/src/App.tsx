@@ -13,6 +13,7 @@ import { ReportsPage } from './pages/Reports/ReportsPage';
 import { EmployeesPage } from './pages/Employees/EmployeesPage';
 import { ViolationsPage } from './pages/Violations/ViolationsPage';
 import { ProfilePage } from './pages/Profile/ProfilePage';
+import { LeavesPage } from './pages/Leaves/LeavesPage';
 
 const DashboardRouter: React.FC = () => {
   const { user } = useAuth();
@@ -41,6 +42,7 @@ export const App: React.FC = () => {
             <Route index element={<Navigate to="/dashboard" replace />} />
             <Route path="dashboard" element={<DashboardRouter />} />
             <Route path="attendance" element={<AttendancePage />} />
+            <Route path="leaves" element={<LeavesPage />} />
             <Route path="profile" element={<ProfilePage />} />
 
             {/* Admin-only Routes */}

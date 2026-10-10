@@ -44,6 +44,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const login = async (username: string, password: string): Promise<User> => {
     const res = await authApi.login({ username, password });
     localStorage.setItem("auth_token", res.access_token);
+    if (res.refresh_token) {
+      localStorage.setItem("refresh_token", res.refresh_token);
+    }
     setToken(res.access_token);
 
     const profile: User = {
@@ -61,6 +64,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const logout = () => {
     localStorage.removeItem("auth_token");
+    localStorage.removeItem("refresh_token");
     localStorage.removeItem("auth_user");
     setUser(null);
     setToken(null);
