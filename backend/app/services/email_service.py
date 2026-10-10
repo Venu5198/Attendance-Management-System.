@@ -173,11 +173,11 @@ class EmailService:
             status_color = "#16a34a" if emp.get("overall_compliance") == "COMPLIANT" else "#dc2626"
             emp_rows += f"""
             <tr style="border-bottom: 1px solid #e2e8f0;">
-                <td style="padding: 10px; font-weight: 500;">{emp.get('full_name')} ({emp.get('employee_id')})</td>
-                <td style="padding: 10px;">{emp.get('department', 'N/A')}</td>
-                <td style="padding: 10px; text-align: center;">{emp.get('total_attended_days', 0)} days</td>
-                <td style="padding: 10px; text-align: center;">{emp.get('total_office_hours', 0.0):.1f} hrs</td>
-                <td style="padding: 10px; text-align: center; color: {status_color}; font-weight: 600;">{emp.get('overall_compliance', 'PENDING')}</td>
+                <td style="padding: 10px; font-weight: 500;">{emp.get("full_name")} ({emp.get("employee_id")})</td>
+                <td style="padding: 10px;">{emp.get("department", "N/A")}</td>
+                <td style="padding: 10px; text-align: center;">{emp.get("total_attended_days", 0)} days</td>
+                <td style="padding: 10px; text-align: center;">{emp.get("total_office_hours", 0.0):.1f} hrs</td>
+                <td style="padding: 10px; text-align: center; color: {status_color}; font-weight: 600;">{emp.get("overall_compliance", "PENDING")}</td>
             </tr>
             """
 
@@ -199,10 +199,10 @@ class EmailService:
                             <th style="padding: 10px; font-size: 12px; text-transform: uppercase;">Avg Hours</th>
                         </tr>
                         <tr style="text-align: center; font-size: 18px; font-weight: bold;">
-                            <td style="padding: 12px;">{summary.get('total_active_employees', 0)}</td>
-                            <td style="padding: 12px; color: #16a34a;">{summary.get('compliant_weeks_count', 0)}</td>
-                            <td style="padding: 12px; color: #dc2626;">{summary.get('non_compliant_weeks_count', 0)}</td>
-                            <td style="padding: 12px; color: #2563eb;">{summary.get('average_hours_per_employee', 0.0):.1f}h</td>
+                            <td style="padding: 12px;">{summary.get("total_active_employees", 0)}</td>
+                            <td style="padding: 12px; color: #16a34a;">{summary.get("compliant_weeks_count", 0)}</td>
+                            <td style="padding: 12px; color: #dc2626;">{summary.get("non_compliant_weeks_count", 0)}</td>
+                            <td style="padding: 12px; color: #2563eb;">{summary.get("average_hours_per_employee", 0.0):.1f}h</td>
                         </tr>
                     </table>
 
@@ -310,7 +310,6 @@ class EmailService:
             return {"status": "smtp_delivered", "recipient": recipient}
         finally:
             server.quit()
-
 
     async def _send_sendgrid(self, recipient: str, subject: str, body: str) -> dict:
         """Send email via SendGrid API."""

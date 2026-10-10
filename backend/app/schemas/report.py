@@ -73,4 +73,3 @@ class EmailReportRequest(BaseModel):
     start_date: str | None = None
     end_date: str | None = None
     employee_id: str | None = None
-

@@ -59,15 +59,25 @@ jobs:
         run: |
           ruff check app/
 
+      - name: Code Formatting Check with Ruff
+        working-directory: ./backend
+        run: |
+          ruff format --check app/
+
       - name: Static Application Security Testing (SAST) with Bandit
         working-directory: ./backend
         run: |
           bandit -r app/ -ll
 
-      - name: Run Pytest Unit & Integration Suite
+      - name: Dependency Vulnerability Audit (SCA) with pip-audit
         working-directory: ./backend
         run: |
-          pytest -v --cov=app --cov-report=term-missing tests/
+          pip-audit
+
+      - name: Run Pytest Unit & Integration Suite with Coverage Gate
+        working-directory: ./backend
+        run: |
+          pytest -v --cov=app --cov-report=term-missing --cov-fail-under=75 tests/
 
   # ============================================================
   # 2. Frontend Testing & Static Analysis (Lint, Build, Vitest)
@@ -90,6 +100,10 @@ jobs:
       - name: Install Frontend Dependencies
         working-directory: ./frontend
         run: npm ci
+
+      - name: Dependency Vulnerability Audit (SCA)
+        working-directory: ./frontend
+        run: npm audit --audit-level=critical
 
       - name: Fast Lint with Oxlint
         working-directory: ./frontend
@@ -187,10 +201,10 @@ jobs:
           retention-days: 7
 
   # ============================================================
-  # 4. Docker Compose Build Verification
+  # 4. Docker Compose Build Verification & Security Scan
   # ============================================================
   docker-build-ci:
-    name: Docker Images Build Verification
+    name: Docker Images Build & Security Verification
     needs: [backend-ci, frontend-ci]
     runs-on: ubuntu-latest
 
@@ -206,3 +220,39 @@ jobs:
 
       - name: Build All Docker Services
         run: docker compose build
+
+      - name: Scan Repository for Vulnerabilities (Trivy)
+        uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: 'fs'
+          scan-ref: '.'
+          severity: 'CRITICAL'
+          exit-code: '0'
+
+  # ============================================================
+  # 5. Master Quality Gate Verification
+  # ============================================================
+  quality-gate:
+    name: CI Quality Gate Evaluator
+    needs: [backend-ci, frontend-ci, e2e-ci, docker-build-ci]
+    if: always()
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check Status of All Quality Gates
+        run: |
+          echo "Evaluating CI Quality Gates..."
+          echo "Backend CI: ${{ needs.backend-ci.result }}"
+          echo "Frontend CI: ${{ needs.frontend-ci.result }}"
+          echo "E2E CI: ${{ needs.e2e-ci.result }}"
+          echo "Docker Build CI: ${{ needs.docker-build-ci.result }}"
+          
+          if [ "${{ needs.backend-ci.result }}" != "success" ] || \
+             [ "${{ needs.frontend-ci.result }}" != "success" ] || \
+             [ "${{ needs.e2e-ci.result }}" != "success" ] || \
+             [ "${{ needs.docker-build-ci.result }}" != "success" ]; then
+            echo "::error::One or more Quality Gates failed. Pull request merge blocked."
+            exit 1
+          fi
+          
+          echo "All CI Quality Gates passed successfully!"

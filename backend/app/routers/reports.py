@@ -108,4 +108,3 @@ async def email_attendance_report(
         "period": req.period,
         "date_range": f"{report_data.metadata.start_date} to {report_data.metadata.end_date}",
     }
-
