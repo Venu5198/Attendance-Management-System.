@@ -1,7 +1,7 @@
 """Attendance regularization service for handling manual time corrections and reviews."""
 
 import logging
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from uuid import uuid4
 
 from fastapi import HTTPException, status
@@ -9,12 +9,14 @@ from pymongo.asynchronous.database import AsyncDatabase
 
 from app.schemas.attendance import AttendanceStatus
 from app.schemas.regularization import (
+    BulkRegularizationReviewRequest,
+    BulkRegularizationReviewResponse,
     RegularizationRequestCreate,
     RegularizationResponse,
     RegularizationReviewRequest,
     RegularizationStatus,
 )
-from app.utils.time_utils import to_utc
+from app.utils.time_utils import get_company_tz, parse_date, to_utc
 
 logger = logging.getLogger(__name__)
 
@@ -55,6 +57,29 @@ class RegularizationService:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="Exit time must be strictly after entry time",
+            )
+
+        tz = get_company_tz()
+        today = datetime.now(tz).date()
+        try:
+            req_date = parse_date(request_in.work_date)
+        except Exception as exc:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Invalid work_date format: {exc}",
+            ) from exc
+
+        if req_date > today:
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                detail="Cannot regularize attendance for future dates",
+            )
+
+        earliest_allowed = today - timedelta(days=14)
+        if req_date < earliest_allowed:
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                detail=f"Attendance regularization must be submitted within 14 days of the work date (earliest allowable: {earliest_allowed.isoformat()})",
             )
 
         duration_seconds = int((exit_utc - entry_utc).total_seconds())
@@ -184,6 +209,39 @@ class RegularizationService:
 
         req.update(update_fields)
         return self._format_doc(req)
+
+    async def bulk_review_requests(
+        self,
+        reviewer_id: str,
+        bulk_in: BulkRegularizationReviewRequest,
+    ) -> BulkRegularizationReviewResponse:
+        """Bulk approve or reject multiple regularization requests (up to 50)."""
+        success_count = 0
+        failed_count = 0
+        updated_ids: list[str] = []
+        errors: list[str] = []
+
+        review_model = RegularizationReviewRequest(
+            action=bulk_in.action,
+            admin_notes=bulk_in.admin_notes,
+        )
+
+        for rid in bulk_in.request_ids:
+            try:
+                await self.review_request(rid, reviewer_id, review_model)
+                success_count += 1
+                updated_ids.append(rid)
+            except Exception as exc:
+                failed_count += 1
+                errors.append(f"Request '{rid}': {str(exc)}")
+
+        return BulkRegularizationReviewResponse(
+            total_requested=len(bulk_in.request_ids),
+            success_count=success_count,
+            failed_count=failed_count,
+            updated_ids=updated_ids,
+            errors=errors,
+        )
 
     def _format_doc(self, doc: dict) -> RegularizationResponse:
         duration_sec = doc.get("duration_seconds", 0)

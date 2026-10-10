@@ -14,6 +14,8 @@ from app.schemas.attendance import (
     CheckOutResponse,
 )
 from app.schemas.regularization import (
+    BulkRegularizationReviewRequest,
+    BulkRegularizationReviewResponse,
     RegularizationRequestCreate,
     RegularizationResponse,
     RegularizationReviewRequest,
@@ -173,6 +175,22 @@ async def list_regularizations(
 
     service = RegularizationService(db)
     return await service.list_requests(employee_id=target_emp_id, status_filter=status_filter)
+
+
+@router.post(
+    "/regularize/bulk-review",
+    response_model=BulkRegularizationReviewResponse,
+    summary="Batch approve or reject regularization requests (Admin only, up to 50)",
+)
+async def bulk_review_regularization(
+    body: BulkRegularizationReviewRequest,
+    current_admin: Annotated[dict, Depends(require_admin)],
+    db: Annotated[AsyncDatabase, Depends(get_database)],
+):
+    """Admin endpoint to bulk approve or reject up to 50 regularization requests in a single transaction."""
+    reviewer_id = current_admin.get("user_id", "admin")
+    service = RegularizationService(db)
+    return await service.bulk_review_requests(reviewer_id, body)
 
 
 @router.patch(

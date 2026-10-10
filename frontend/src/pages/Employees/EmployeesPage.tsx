@@ -222,6 +222,21 @@ export const EmployeesPage: React.FC = () => {
                 </select>
               </div>
 
+              <div>
+                <label className="block text-xs font-semibold text-slate-600 mb-1">
+                  Start / Hire Date (Pro-Rata Onboarding)
+                </label>
+                <input
+                  type="date"
+                  value={formData.hire_date || ''}
+                  onChange={(e) => setFormData({ ...formData, hire_date: e.target.value || null })}
+                  className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none"
+                />
+                <p className="text-[11px] text-slate-400 mt-0.5">
+                  Mid-week joiners dynamically scale attendance targets for their first week.
+                </p>
+              </div>
+
               <div className="flex justify-end gap-3 pt-2">
                 <button
                   type="button"

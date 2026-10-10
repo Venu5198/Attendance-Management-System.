@@ -8,6 +8,8 @@ from fastapi import HTTPException, status
 from pymongo.asynchronous.database import AsyncDatabase
 
 from app.schemas.leave import (
+    BulkLeaveReviewRequest,
+    BulkReviewResponse,
     LeaveRequestCreate,
     LeaveResponse,
     LeaveReviewRequest,
@@ -60,6 +62,21 @@ class LeaveService:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="End date cannot precede start date",
+            )
+
+        # Check overlapping leave requests
+        overlap = await self.leaves.find_one(
+            {
+                "employee_id": employee_id,
+                "status": {"$in": [LeaveStatus.PENDING.value, LeaveStatus.APPROVED.value]},
+                "start_date": {"$lte": request_in.end_date},
+                "end_date": {"$gte": request_in.start_date},
+            }
+        )
+        if overlap:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail=f"Leave request conflicts with an existing {overlap['status'].lower()} leave from {overlap['start_date']} to {overlap['end_date']}",
             )
 
         now = datetime.now(UTC)
@@ -131,6 +148,50 @@ class LeaveService:
 
         leave_doc.update(update_fields)
         return self._format_doc(leave_doc)
+
+    async def bulk_review_leaves(
+        self,
+        reviewer_id: str,
+        bulk_in: BulkLeaveReviewRequest,
+    ) -> BulkReviewResponse:
+        """Bulk approve or reject multiple leave requests (up to 50)."""
+        success_count = 0
+        failed_count = 0
+        updated_ids: list[str] = []
+        errors: list[str] = []
+
+        now = datetime.now(UTC)
+        for lid in bulk_in.leave_ids:
+            doc = await self.leaves.find_one({"leave_id": lid})
+            if not doc:
+                failed_count += 1
+                errors.append(f"Leave '{lid}' not found")
+                continue
+            if doc.get("status") != LeaveStatus.PENDING.value:
+                failed_count += 1
+                errors.append(f"Leave '{lid}' already reviewed (status: {doc.get('status')})")
+                continue
+
+            update_fields = {
+                "status": bulk_in.action.value,
+                "reviewed_by": reviewer_id,
+                "reviewed_at": now,
+                "admin_notes": bulk_in.admin_notes,
+            }
+            await self.leaves.update_one(
+                {"leave_id": lid},
+                {"$set": update_fields},
+            )
+            success_count += 1
+            updated_ids.append(lid)
+
+        return BulkReviewResponse(
+            total_requested=len(bulk_in.leave_ids),
+            success_count=success_count,
+            failed_count=failed_count,
+            updated_ids=updated_ids,
+            errors=errors,
+        )
 
     async def get_approved_leave_days_in_range(
         self,

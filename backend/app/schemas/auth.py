@@ -12,12 +12,17 @@ class UserLogin(BaseModel):
 
 class TokenResponse(BaseModel):
     access_token: str
+    refresh_token: str | None = None
     token_type: str = "bearer"
     expires_in_seconds: int
     user_id: str
     username: str
     role: str
     employee_id: str | None = None
+
+
+class RefreshTokenRequest(BaseModel):
+    refresh_token: str
 
 
 class TokenPayload(BaseModel):

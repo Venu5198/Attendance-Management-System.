@@ -46,18 +46,102 @@ async def seed_data():
 
     # 1. Define Employees (11 active, 1 inactive)
     employees_data = [
-        {"employee_id": "EMP001", "full_name": "Alice Chen", "email": "alice.chen@company.com", "department": "Engineering", "role": "EMPLOYEE", "is_active": True},
-        {"employee_id": "EMP002", "full_name": "Bob Kumar", "email": "bob.kumar@company.com", "department": "Engineering", "role": "EMPLOYEE", "is_active": True},
-        {"employee_id": "EMP003", "full_name": "Charlie Davis", "email": "charlie.davis@company.com", "department": "Marketing", "role": "EMPLOYEE", "is_active": True},
-        {"employee_id": "EMP004", "full_name": "Diana Prince", "email": "diana.prince@company.com", "department": "Product", "role": "EMPLOYEE", "is_active": True},
-        {"employee_id": "EMP005", "full_name": "Evan Wright", "email": "evan.wright@company.com", "department": "Finance", "role": "EMPLOYEE", "is_active": True},
-        {"employee_id": "EMP006", "full_name": "Fiona Gallagher", "email": "fiona.g@company.com", "department": "HR", "role": "EMPLOYEE", "is_active": True},
-        {"employee_id": "EMP007", "full_name": "George Clark", "email": "george.clark@company.com", "department": "Engineering", "role": "EMPLOYEE", "is_active": True},
-        {"employee_id": "EMP008", "full_name": "Hannah Abbott", "email": "hannah.a@company.com", "department": "Sales", "role": "EMPLOYEE", "is_active": True},
-        {"employee_id": "EMP009", "full_name": "Ian Malcolm", "email": "ian.malcolm@company.com", "department": "Data Science", "role": "EMPLOYEE", "is_active": True},
-        {"employee_id": "EMP010", "full_name": "Julia Roberts", "email": "julia.roberts@company.com", "department": "Design", "role": "EMPLOYEE", "is_active": True},
-        {"employee_id": "EMP011", "full_name": "Kevin Bacon", "email": "kevin.bacon@company.com", "department": "Quality Assurance", "role": "EMPLOYEE", "is_active": True},
-        {"employee_id": "EMP012", "full_name": "Laura Croft", "email": "laura.croft@company.com", "department": "Security", "role": "EMPLOYEE", "is_active": False},
+        {
+            "employee_id": "EMP001",
+            "full_name": "Alice Chen",
+            "email": "alice.chen@company.com",
+            "department": "Engineering",
+            "role": "EMPLOYEE",
+            "is_active": True,
+        },
+        {
+            "employee_id": "EMP002",
+            "full_name": "Bob Kumar",
+            "email": "bob.kumar@company.com",
+            "department": "Engineering",
+            "role": "EMPLOYEE",
+            "is_active": True,
+        },
+        {
+            "employee_id": "EMP003",
+            "full_name": "Charlie Davis",
+            "email": "charlie.davis@company.com",
+            "department": "Marketing",
+            "role": "EMPLOYEE",
+            "is_active": True,
+        },
+        {
+            "employee_id": "EMP004",
+            "full_name": "Diana Prince",
+            "email": "diana.prince@company.com",
+            "department": "Product",
+            "role": "EMPLOYEE",
+            "is_active": True,
+        },
+        {
+            "employee_id": "EMP005",
+            "full_name": "Evan Wright",
+            "email": "evan.wright@company.com",
+            "department": "Finance",
+            "role": "EMPLOYEE",
+            "is_active": True,
+        },
+        {
+            "employee_id": "EMP006",
+            "full_name": "Fiona Gallagher",
+            "email": "fiona.g@company.com",
+            "department": "HR",
+            "role": "EMPLOYEE",
+            "is_active": True,
+        },
+        {
+            "employee_id": "EMP007",
+            "full_name": "George Clark",
+            "email": "george.clark@company.com",
+            "department": "Engineering",
+            "role": "EMPLOYEE",
+            "is_active": True,
+        },
+        {
+            "employee_id": "EMP008",
+            "full_name": "Hannah Abbott",
+            "email": "hannah.a@company.com",
+            "department": "Sales",
+            "role": "EMPLOYEE",
+            "is_active": True,
+        },
+        {
+            "employee_id": "EMP009",
+            "full_name": "Ian Malcolm",
+            "email": "ian.malcolm@company.com",
+            "department": "Data Science",
+            "role": "EMPLOYEE",
+            "is_active": True,
+        },
+        {
+            "employee_id": "EMP010",
+            "full_name": "Julia Roberts",
+            "email": "julia.roberts@company.com",
+            "department": "Design",
+            "role": "EMPLOYEE",
+            "is_active": True,
+        },
+        {
+            "employee_id": "EMP011",
+            "full_name": "Kevin Bacon",
+            "email": "kevin.bacon@company.com",
+            "department": "Quality Assurance",
+            "role": "EMPLOYEE",
+            "is_active": True,
+        },
+        {
+            "employee_id": "EMP012",
+            "full_name": "Laura Croft",
+            "email": "laura.croft@company.com",
+            "department": "Security",
+            "role": "EMPLOYEE",
+            "is_active": False,
+        },
     ]
 
     emp_docs = [{**emp, "created_at": now_utc, "updated_at": now_utc} for emp in employees_data]
@@ -66,10 +150,34 @@ async def seed_data():
 
     # 2. Define User Accounts
     users_data = [
-        {"username": "admin", "email": "admin@company.com", "password": "AdminPass123!", "role": "ADMIN", "employee_id": None},
-        {"username": "emp001", "email": "alice.chen@company.com", "password": "EmpPass123!", "role": "EMPLOYEE", "employee_id": "EMP001"},
-        {"username": "emp004", "email": "diana.prince@company.com", "password": "EmpPass123!", "role": "EMPLOYEE", "employee_id": "EMP004"},
-        {"username": "emp005", "email": "evan.wright@company.com", "password": "EmpPass123!", "role": "EMPLOYEE", "employee_id": "EMP005"},
+        {
+            "username": "admin",
+            "email": "admin@company.com",
+            "password": "AdminPass123!",
+            "role": "ADMIN",
+            "employee_id": None,
+        },
+        {
+            "username": "emp001",
+            "email": "alice.chen@company.com",
+            "password": "EmpPass123!",
+            "role": "EMPLOYEE",
+            "employee_id": "EMP001",
+        },
+        {
+            "username": "emp004",
+            "email": "diana.prince@company.com",
+            "password": "EmpPass123!",
+            "role": "EMPLOYEE",
+            "employee_id": "EMP004",
+        },
+        {
+            "username": "emp005",
+            "email": "evan.wright@company.com",
+            "password": "EmpPass123!",
+            "role": "EMPLOYEE",
+            "employee_id": "EMP005",
+        },
     ]
 
     user_docs = [
@@ -145,32 +253,44 @@ async def seed_data():
     # EMP002: 4 days, 24h -> Already COMPLIANT
     for d in [0, 1, 2, 3]:
         if current_monday + timedelta(days=d) < today:
-            attendance_docs.append({"employee_id": "EMP002", **make_session(current_monday + timedelta(days=d), 9, 6.0)})
+            attendance_docs.append(
+                {"employee_id": "EMP002", **make_session(current_monday + timedelta(days=d), 9, 6.0)}
+            )
 
     # EMP003: 3 days, 21h -> Already COMPLIANT
     for d in [0, 1, 2]:
         if current_monday + timedelta(days=d) < today:
-            attendance_docs.append({"employee_id": "EMP003", **make_session(current_monday + timedelta(days=d), 8, 7.0)})
+            attendance_docs.append(
+                {"employee_id": "EMP003", **make_session(current_monday + timedelta(days=d), 8, 7.0)}
+            )
 
     # EMP009: 3 days, 18h -> Already COMPLIANT
     for d in [0, 2, 4]:
         if current_monday + timedelta(days=d) < today:
-            attendance_docs.append({"employee_id": "EMP009", **make_session(current_monday + timedelta(days=d), 9, 6.0)})
+            attendance_docs.append(
+                {"employee_id": "EMP009", **make_session(current_monday + timedelta(days=d), 9, 6.0)}
+            )
 
     # EMP010: 3 days, 16h -> Already COMPLIANT
     for d in [0, 1, 3]:
         if current_monday + timedelta(days=d) < today:
-            attendance_docs.append({"employee_id": "EMP010", **make_session(current_monday + timedelta(days=d), 9, 5.5)})
+            attendance_docs.append(
+                {"employee_id": "EMP010", **make_session(current_monday + timedelta(days=d), 9, 5.5)}
+            )
 
     # EMP004: 2 days, 12h -> PENDING
     for d in [0, 1]:
         if current_monday + timedelta(days=d) < today:
-            attendance_docs.append({"employee_id": "EMP004", **make_session(current_monday + timedelta(days=d), 10, 6.0)})
+            attendance_docs.append(
+                {"employee_id": "EMP004", **make_session(current_monday + timedelta(days=d), 10, 6.0)}
+            )
 
     # EMP005: 2 days, 10h -> PENDING
     for d in [0, 2]:
         if current_monday + timedelta(days=d) < today:
-            attendance_docs.append({"employee_id": "EMP005", **make_session(current_monday + timedelta(days=d), 9, 5.0)})
+            attendance_docs.append(
+                {"employee_id": "EMP005", **make_session(current_monday + timedelta(days=d), 9, 5.0)}
+            )
 
     # EMP006: 1 day, 6h -> PENDING
     if current_monday < today:
@@ -179,7 +299,9 @@ async def seed_data():
     # EMP008: 2 days, 11h -> PENDING
     for d in [1, 3]:
         if current_monday + timedelta(days=d) < today:
-            attendance_docs.append({"employee_id": "EMP008", **make_session(current_monday + timedelta(days=d), 9, 5.5)})
+            attendance_docs.append(
+                {"employee_id": "EMP008", **make_session(current_monday + timedelta(days=d), 9, 5.5)}
+            )
 
     # EMP011: Active in-progress check-in today
     today_entry = datetime(today.year, today.month, today.day, 9, 30, 0, tzinfo=tz).astimezone(UTC)
@@ -233,7 +355,9 @@ async def seed_data():
 
     violation_count = await db.policy_violations.count_documents({})
     notification_count = await db.notification_logs.count_documents({})
-    print(f"Seeded {violation_count} policy violations ({notification_count} dispatched, {violation_count - notification_count} pending).")
+    print(
+        f"Seeded {violation_count} policy violations ({notification_count} dispatched, {violation_count - notification_count} pending)."
+    )
 
     await client.close()
     print("Database seeding completed successfully.")

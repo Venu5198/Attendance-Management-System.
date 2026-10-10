@@ -9,6 +9,8 @@ from app.database import get_database
 from app.dependencies import get_current_user, require_admin
 from app.routers.attendance import resolve_employee_id
 from app.schemas.leave import (
+    BulkLeaveReviewRequest,
+    BulkReviewResponse,
     LeaveRequestCreate,
     LeaveResponse,
     LeaveReviewRequest,
@@ -16,6 +18,22 @@ from app.schemas.leave import (
 from app.services.leave_service import LeaveService
 
 router = APIRouter(prefix="/leaves", tags=["Leaves & Exemptions"])
+
+
+@router.post(
+    "/bulk-review",
+    response_model=BulkReviewResponse,
+    summary="Batch approve or reject leave requests (Admin only, up to 50)",
+)
+async def bulk_review_leaves(
+    body: BulkLeaveReviewRequest,
+    current_admin: Annotated[dict, Depends(require_admin)],
+    db: Annotated[AsyncDatabase, Depends(get_database)],
+):
+    """Admin endpoint to bulk approve or reject up to 50 leave requests in a single transaction."""
+    reviewer_id = current_admin.get("user_id", "admin")
+    service = LeaveService(db)
+    return await service.bulk_review_leaves(reviewer_id, body)
 
 
 @router.post(

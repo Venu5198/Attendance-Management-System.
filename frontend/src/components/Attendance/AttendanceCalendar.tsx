@@ -1,6 +1,7 @@
-import React, { useMemo, useState } from 'react';
-import type { AttendanceRecord } from '../../types';
+import React, { useEffect, useMemo, useState } from 'react';
+import type { AttendanceRecord, Holiday } from '../../types';
 import { attendanceApi } from '../../api';
+import { holidaysApi } from '../../api/holidays';
 import {
   ChevronLeft,
   ChevronRight,
@@ -8,6 +9,7 @@ import {
   CheckCircle,
   AlertCircle,
   Clock,
+  Sparkles,
   X,
 } from 'lucide-react';
 
@@ -107,6 +109,7 @@ export const AttendanceCalendar: React.FC<AttendanceCalendarProps> = ({
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
 
   // Regularization modal state
+  const [holidays, setHolidays] = useState<Holiday[]>([]);
   const [modalOpen, setModalOpen] = useState(false);
   const [entryTimeInput, setEntryTimeInput] = useState('09:30');
   const [exitTimeInput, setExitTimeInput] = useState('17:30');
@@ -118,6 +121,22 @@ export const AttendanceCalendar: React.FC<AttendanceCalendarProps> = ({
   const monthIndex = currentDate.getMonth();
 
   const monthName = currentDate.toLocaleString('default', { month: 'long', year: 'numeric' });
+
+  useEffect(() => {
+    let isMounted = true;
+    holidaysApi.getHolidays().then((data) => {
+      if (isMounted) setHolidays(data);
+    }).catch(() => {});
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  const holidaysMap = useMemo(() => {
+    const map = new Map<string, Holiday>();
+    holidays.forEach((h) => map.set(h.holiday_date, h));
+    return map;
+  }, [holidays]);
 
   // 1. Build optimized lookup map
   const attendanceLookup = useMemo(() => {
@@ -257,6 +276,10 @@ export const AttendanceCalendar: React.FC<AttendanceCalendarProps> = ({
           <span>In Progress</span>
         </div>
         <div className="flex items-center gap-1.5">
+          <span className="w-3 h-3 rounded-full bg-purple-500"></span>
+          <span>Company Holiday (Target Scaled)</span>
+        </div>
+        <div className="flex items-center gap-1.5">
           <span className="w-3 h-3 rounded-full bg-rose-400"></span>
           <span>Missed Scan (Click to Regularize)</span>
         </div>
@@ -290,9 +313,11 @@ export const AttendanceCalendar: React.FC<AttendanceCalendarProps> = ({
             }
 
             const record = attendanceLookup[cell.dateString];
+            const holiday = holidaysMap.get(cell.dateString);
+            const isHoliday = !!holiday;
             const isAttended = record && record.status === 'Attended';
             const isInProgress = record && record.status === 'In Progress';
-            const isMissed = !record && !cell.isWeekend && !cell.isFuture;
+            const isMissed = !record && !cell.isWeekend && !cell.isFuture && !isHoliday;
 
             // Determine style state
             let cardClass = 'bg-white border-slate-200 text-slate-700 hover:border-slate-300';
@@ -300,6 +325,8 @@ export const AttendanceCalendar: React.FC<AttendanceCalendarProps> = ({
               cardClass = 'bg-emerald-50/70 border-emerald-300 text-emerald-900 hover:border-emerald-400';
             } else if (isInProgress) {
               cardClass = 'bg-amber-50/80 border-amber-300 text-amber-900 hover:border-amber-400';
+            } else if (isHoliday) {
+              cardClass = 'bg-purple-50/80 border-purple-300 text-purple-900';
             } else if (isMissed) {
               cardClass = 'bg-rose-50/60 border-rose-300 text-rose-900 hover:border-rose-400 cursor-pointer group';
             } else if (cell.isWeekend) {
@@ -318,6 +345,7 @@ export const AttendanceCalendar: React.FC<AttendanceCalendarProps> = ({
                   <span className="text-sm font-bold">{cell.dayNumber}</span>
                   {isAttended && <CheckCircle className="w-3.5 h-3.5 text-emerald-600" />}
                   {isInProgress && <Clock className="w-3.5 h-3.5 text-amber-600 animate-pulse" />}
+                  {isHoliday && !isAttended && !isInProgress && <Sparkles className="w-3.5 h-3.5 text-purple-600" />}
                   {isMissed && <AlertCircle className="w-3.5 h-3.5 text-rose-500" />}
                 </div>
 
@@ -328,6 +356,7 @@ export const AttendanceCalendar: React.FC<AttendanceCalendarProps> = ({
                       <p className="text-[10px] text-slate-500 truncate">
                         {formatTime(record.entryTime)} - {formatTime(record.exitTime)}
                       </p>
+                      {isHoliday && <p className="text-[9px] text-purple-700 font-bold">Holiday Overtime</p>}
                     </div>
                   )}
 
@@ -338,6 +367,17 @@ export const AttendanceCalendar: React.FC<AttendanceCalendarProps> = ({
                     </div>
                   )}
 
+                  {isHoliday && !isAttended && !isInProgress && (
+                    <div>
+                      <span className="inline-block px-1.5 py-0.5 text-[9px] font-bold bg-purple-200 text-purple-900 rounded">
+                        Holiday
+                      </span>
+                      <p className="text-[10px] text-purple-800 font-semibold truncate mt-0.5" title={holiday?.name}>
+                        {holiday?.name}
+                      </p>
+                    </div>
+                  )}
+
                   {isMissed && (
                     <div>
                       <p className="font-semibold text-rose-700">Missed</p>
@@ -345,7 +385,7 @@ export const AttendanceCalendar: React.FC<AttendanceCalendarProps> = ({
                     </div>
                   )}
 
-                  {cell.isWeekend && <p className="text-[10px] text-slate-400">Weekend</p>}
+                  {cell.isWeekend && !isHoliday && <p className="text-[10px] text-slate-400">Weekend</p>}
                 </div>
               </div>
             );

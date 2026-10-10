@@ -32,6 +32,7 @@ export interface Employee {
   email: string;
   department: string;
   role: Role;
+  hire_date?: string | null;
   is_active: boolean;
   created_at: string;
   updated_at: string;
@@ -43,6 +44,7 @@ export interface EmployeeCreate {
   email: string;
   department: string;
   role?: Role;
+  hire_date?: string | null;
   is_active?: boolean;
 }
 
@@ -93,6 +95,9 @@ export interface WeeklyComplianceResult {
   total_duration_seconds: number;
   required_days: number;
   required_hours: number;
+  approved_leave_days?: number;
+  holidays_count?: number;
+  pre_hire_workdays?: number;
   is_week_completed: boolean;
   compliance_status: ComplianceStatus;
   violation_reasons: string[];
@@ -110,10 +115,28 @@ export interface PolicyViolation {
   total_office_hours: number;
   required_days: number;
   required_hours: number;
+  approved_leave_days?: number;
+  holidays_count?: number;
+  pre_hire_workdays?: number;
   compliance_status: ComplianceStatus;
   violation_reasons: string[];
   evaluated_at: string;
   notification_sent: boolean;
+}
+
+export interface Holiday {
+  holiday_id: string;
+  holiday_date: string;
+  name: string;
+  description?: string | null;
+  created_at: string;
+  created_by?: string | null;
+}
+
+export interface HolidayCreate {
+  holiday_date: string;
+  name: string;
+  description?: string | null;
 }
 
 export interface NotificationLog {

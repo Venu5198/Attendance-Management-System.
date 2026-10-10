@@ -9,7 +9,7 @@ from pymongo.asynchronous.database import AsyncDatabase
 from app.database import get_database
 from app.dependencies import require_admin
 from app.schemas.notification import NotificationLogResponse
-from app.schemas.policy import PolicyViolationRecord, WeeklyComplianceResult
+from app.schemas.policy import ComplianceHealthScore, PolicyViolationRecord, WeeklyComplianceResult
 from app.services.email_service import EmailService
 from app.services.policy_service import PolicyService
 from app.utils.time_utils import get_week_boundaries, parse_date
@@ -25,6 +25,24 @@ class EvaluateWeekRequest(BaseModel):
 class DispatchNotificationsRequest(BaseModel):
     week_label: str
     force_resend: bool = False
+
+
+@router.get(
+    "/health-scores",
+    response_model=list[ComplianceHealthScore],
+    summary="Get rolling 4-week compliance health scores per employee (Admin only)",
+)
+async def get_compliance_health_scores(
+    current_admin: Annotated[dict, Depends(require_admin)],
+    db: Annotated[AsyncDatabase, Depends(get_database)],
+    employee_id: str | None = Query(None, description="Filter by employee ID"),
+):
+    """
+    Continuous Compliance Health Score:
+    Rolling 4-week compliance history percentage per employee to spot chronic under-hours patterns.
+    """
+    service = PolicyService(db)
+    return await service.get_rolling_health_scores(employee_id_filter=employee_id)
 
 
 @router.get(
@@ -54,6 +72,9 @@ async def list_violations(
             total_office_hours=v["total_office_hours"],
             required_days=v["required_days"],
             required_hours=v["required_hours"],
+            approved_leave_days=v.get("approved_leave_days", 0),
+            holidays_count=v.get("holidays_count", 0),
+            pre_hire_workdays=v.get("pre_hire_workdays", 0),
             compliance_status=v["compliance_status"],
             violation_reasons=v.get("violation_reasons", []),
             evaluated_at=v["evaluated_at"],

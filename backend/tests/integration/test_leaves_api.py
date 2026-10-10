@@ -82,3 +82,77 @@ async def test_approved_leave_exempts_from_policy_violations(
     # 4. Verify no violation record was persisted
     violations = await test_db.policy_violations.find({"employee_id": employee_id}).to_list(length=None)
     assert len(violations) == 0
+
+
+@pytest.mark.asyncio
+async def test_overlapping_leave_rejection(async_client: AsyncClient, seed_employee_user):
+    """Attempting to submit overlapping leave dates returns 409 Conflict."""
+    emp_headers = seed_employee_user["headers"]
+
+    # First leave
+    res1 = await async_client.post(
+        "/api/v1/leaves/request",
+        json={
+            "start_date": "2026-11-10",
+            "end_date": "2026-11-15",
+            "leave_type": "VACATION",
+            "reason": "First trip",
+        },
+        headers=emp_headers,
+    )
+    assert res1.status_code == 201
+
+    # Overlapping leave (partially intersecting)
+    res2 = await async_client.post(
+        "/api/v1/leaves/request",
+        json={
+            "start_date": "2026-11-12",
+            "end_date": "2026-11-18",
+            "leave_type": "CASUAL",
+            "reason": "Overlapping trip",
+        },
+        headers=emp_headers,
+    )
+    assert res2.status_code == 409
+    assert "conflicts with an existing" in res2.json()["message"]
+
+
+@pytest.mark.asyncio
+async def test_bulk_leave_review(async_client: AsyncClient, seed_employee_user, seed_admin_user):
+    """Admin batch approves up to 50 leave requests."""
+    emp_headers = seed_employee_user["headers"]
+    admin_headers = seed_admin_user["headers"]
+
+    # Submit 2 separate leaves
+    r1 = await async_client.post(
+        "/api/v1/leaves/request",
+        json={"start_date": "2026-12-01", "end_date": "2026-12-02", "leave_type": "CASUAL", "reason": "Doc appt"},
+        headers=emp_headers,
+    )
+    r2 = await async_client.post(
+        "/api/v1/leaves/request",
+        json={"start_date": "2026-12-05", "end_date": "2026-12-06", "leave_type": "SICK", "reason": "Dentist"},
+        headers=emp_headers,
+    )
+    assert r1.status_code == 201
+    assert r2.status_code == 201
+    l1_id = r1.json()["leave_id"]
+    l2_id = r2.json()["leave_id"]
+
+    # Bulk approve
+    bulk_res = await async_client.post(
+        "/api/v1/leaves/bulk-review",
+        json={
+            "leave_ids": [l1_id, l2_id],
+            "action": "APPROVED",
+            "admin_notes": "Batch approved by HR",
+        },
+        headers=admin_headers,
+    )
+    assert bulk_res.status_code == 200
+    data = bulk_res.json()
+    assert data["total_requested"] == 2
+    assert data["success_count"] == 2
+    assert data["failed_count"] == 0
+    assert l1_id in data["updated_ids"]
+    assert l2_id in data["updated_ids"]

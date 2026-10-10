@@ -51,8 +51,76 @@ class AuthService:
         }
         token = create_access_token(token_payload)
 
+        from datetime import timedelta
+
+        refresh_token = create_access_token(
+            {
+                "sub": user["user_id"],
+                "type": "refresh",
+            },
+            expires_delta=timedelta(days=7),
+        )
+
         return TokenResponse(
             access_token=token,
+            refresh_token=refresh_token,
+            expires_in_seconds=480 * 60,
+            user_id=user["user_id"],
+            username=user["username"],
+            role=user["role"],
+            employee_id=user.get("employee_id"),
+        )
+
+    async def refresh_access_token(self, refresh_token: str) -> TokenResponse:
+        """Validate refresh token and issue a fresh token pair."""
+        from datetime import timedelta
+
+        from app.utils.security import decode_access_token
+
+        try:
+            payload = decode_access_token(refresh_token)
+        except Exception:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Invalid or expired refresh token",
+                headers={"WWW-Authenticate": "Bearer"},
+            ) from None
+
+        if payload.get("type") != "refresh":
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Provided token is not a refresh token",
+                headers={"WWW-Authenticate": "Bearer"},
+            )
+
+        user_id = payload.get("sub")
+        user = await self.users.find_one({"user_id": user_id})
+        if not user or not user.get("is_active", True):
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="User account is invalid or deactivated",
+                headers={"WWW-Authenticate": "Bearer"},
+            )
+
+        new_access_token = create_access_token(
+            {
+                "sub": user["user_id"],
+                "username": user["username"],
+                "role": user["role"],
+                "employee_id": user.get("employee_id"),
+            }
+        )
+        new_refresh_token = create_access_token(
+            {
+                "sub": user["user_id"],
+                "type": "refresh",
+            },
+            expires_delta=timedelta(days=7),
+        )
+
+        return TokenResponse(
+            access_token=new_access_token,
+            refresh_token=new_refresh_token,
             expires_in_seconds=480 * 60,
             user_id=user["user_id"],
             username=user["username"],

@@ -31,6 +31,8 @@ services:
         condition: service_healthy
     networks:
       - attendance-network
+    volumes:
+      - ./backend:/app
     env_file:
       - .env
     environment:

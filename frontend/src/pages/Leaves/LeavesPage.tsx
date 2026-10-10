@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { useAuth } from '../../auth/AuthContext';
 import { leavesApi } from '../../api';
-import type { LeaveRequest, LeaveStatus, LeaveType } from '../../types';
+import { holidaysApi } from '../../api/holidays';
+import type { Holiday, LeaveRequest, LeaveStatus, LeaveType } from '../../types';
 import {
   CalendarDays,
   Plus,
@@ -11,15 +12,26 @@ import {
   CheckCircle2,
   AlertCircle,
   Briefcase,
+  Sparkles,
+  Trash2,
 } from 'lucide-react';
 
 export const LeavesPage: React.FC = () => {
   const { user } = useAuth();
+  const [activeTab, setActiveTab] = useState<'leaves' | 'holidays'>('leaves');
   const [leaves, setLeaves] = useState<LeaveRequest[]>([]);
+  const [holidays, setHolidays] = useState<Holiday[]>([]);
   const [statusFilter, setStatusFilter] = useState<LeaveStatus | 'ALL'>('ALL');
   const [loading, setLoading] = useState(true);
   const [processingId, setProcessingId] = useState<string | null>(null);
   const [msg, setMsg] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+
+  // Holiday Modal State
+  const [holidayModalOpen, setHolidayModalOpen] = useState(false);
+  const [holidayDate, setHolidayDate] = useState('');
+  const [holidayName, setHolidayName] = useState('');
+  const [holidayDesc, setHolidayDesc] = useState('');
+  const [holidaySubmitting, setHolidaySubmitting] = useState(false);
 
   // Modal State
   const [modalOpen, setModalOpen] = useState(false);
@@ -50,9 +62,66 @@ export const LeavesPage: React.FC = () => {
     }
   };
 
+  const fetchHolidays = async () => {
+    try {
+      const data = await holidaysApi.getHolidays();
+      setHolidays(data);
+    } catch {
+      setMsg({ type: 'error', text: 'Failed to load company holidays.' });
+    }
+  };
+
   useEffect(() => {
-    fetchLeaves();
-  }, [statusFilter, user]);
+    if (activeTab === 'leaves') {
+      fetchLeaves();
+    } else {
+      fetchHolidays();
+    }
+  }, [statusFilter, user, activeTab]);
+
+  const handleCreateHoliday = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      setHolidaySubmitting(true);
+      setMsg(null);
+      await holidaysApi.createHoliday({
+        holiday_date: holidayDate,
+        name: holidayName,
+        description: holidayDesc || undefined,
+      });
+      setMsg({ type: 'success', text: `Holiday '${holidayName}' successfully configured!` });
+      setHolidayModalOpen(false);
+      setHolidayDate('');
+      setHolidayName('');
+      setHolidayDesc('');
+      await fetchHolidays();
+    } catch (err: unknown) {
+      const respData = (err as { response?: { data?: { message?: string; detail?: string } } })?.response?.data;
+      const errorMsg =
+        respData?.message ||
+        respData?.detail ||
+        (err as Error)?.message ||
+        'Failed to configure holiday.';
+      setMsg({ type: 'error', text: errorMsg });
+    } finally {
+      setHolidaySubmitting(false);
+    }
+  };
+
+  const handleDeleteHoliday = async (holidayId: string, name: string) => {
+    if (!confirm(`Are you sure you want to delete the holiday '${name}'?`)) return;
+    try {
+      setMsg(null);
+      await holidaysApi.deleteHoliday(holidayId);
+      setMsg({ type: 'success', text: `Holiday '${name}' deleted successfully.` });
+      await fetchHolidays();
+    } catch (err: unknown) {
+      const errorMsg =
+        (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail ||
+        'Failed to delete holiday.';
+      setMsg({ type: 'error', text: errorMsg });
+    }
+  };
 
   const handleBulkReview = async (action: 'APPROVED' | 'REJECTED') => {
     if (selectedLeaveIds.length === 0) return;
@@ -193,18 +262,54 @@ export const LeavesPage: React.FC = () => {
       {/* Header */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900">Leaves & Policy Exemptions</h1>
+          <h1 className="text-2xl font-bold text-slate-900">Leaves & Company Calendar</h1>
           <p className="text-sm text-slate-500">
-            Submit time-off requests to exempt dates from the 3-day / 15-hour in-office policy
+            Manage employee leaves and company holidays that dynamically scale weekly policy targets
           </p>
         </div>
 
+        {activeTab === 'leaves' ? (
+          <button
+            onClick={() => setModalOpen(true)}
+            className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold rounded-xl shadow-sm flex items-center gap-2 transition"
+          >
+            <Plus className="w-4 h-4" />
+            Request Leave
+          </button>
+        ) : isAdmin ? (
+          <button
+            onClick={() => setHolidayModalOpen(true)}
+            className="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white text-sm font-semibold rounded-xl shadow-sm flex items-center gap-2 transition"
+          >
+            <Plus className="w-4 h-4" />
+            Add Company Holiday
+          </button>
+        ) : null}
+      </div>
+
+      {/* Tab Switcher */}
+      <div className="flex gap-2 border-b border-slate-200 pb-2">
         <button
-          onClick={() => setModalOpen(true)}
-          className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold rounded-xl shadow-sm flex items-center gap-2 transition"
+          onClick={() => setActiveTab('leaves')}
+          className={`px-4 py-2 text-sm font-bold rounded-xl transition flex items-center gap-2 ${
+            activeTab === 'leaves'
+              ? 'bg-blue-600 text-white shadow-xs'
+              : 'text-slate-600 hover:bg-slate-100'
+          }`}
         >
-          <Plus className="w-4 h-4" />
-          Request Leave
+          <CalendarDays className="w-4 h-4" />
+          Leave Applications
+        </button>
+        <button
+          onClick={() => setActiveTab('holidays')}
+          className={`px-4 py-2 text-sm font-bold rounded-xl transition flex items-center gap-2 ${
+            activeTab === 'holidays'
+              ? 'bg-purple-600 text-white shadow-xs'
+              : 'text-slate-600 hover:bg-slate-100'
+          }`}
+        >
+          <Sparkles className="w-4 h-4" />
+          Company Holidays Calendar
         </button>
       </div>
 
@@ -216,13 +321,14 @@ export const LeavesPage: React.FC = () => {
               : 'bg-rose-50 text-rose-800 border border-rose-200'
           }`}
         >
-          {msg.type === 'success' ? <CheckCircle2 className="w-4 h-4" /> : <AlertCircle className="w-4 h-4" />}
+          {msg.type === 'success' ? <CheckCircle2 className="w-4 h-4 shrink-0" /> : <AlertCircle className="w-4 h-4 shrink-0" />}
           {msg.text}
         </div>
       )}
 
       {/* Main Container */}
-      <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 space-y-4">
+      {activeTab === 'leaves' ? (
+        <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 space-y-4">
         {/* Filter bar */}
         <div className="flex justify-between items-center border-b border-slate-100 pb-4">
           <div className="flex items-center gap-2">
@@ -396,6 +502,77 @@ export const LeavesPage: React.FC = () => {
           </div>
         </div>
       </div>
+      ) : (
+        /* Company Holidays Tab */
+        <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 space-y-4">
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 border-b border-slate-100 pb-4">
+            <div className="flex items-center gap-2">
+              <Sparkles className="w-5 h-5 text-purple-600" />
+              <div>
+                <h2 className="text-base font-bold text-slate-800">Company & National Holidays</h2>
+                <p className="text-xs text-slate-500">
+                  Business day holidays automatically deduct 1 day / 5 hours from weekly requirements.
+                </p>
+              </div>
+            </div>
+            <div className="bg-purple-50 text-purple-800 text-xs font-semibold px-3 py-1.5 rounded-xl border border-purple-200">
+              {holidays.length} Holiday{holidays.length !== 1 ? 's' : ''} Configured
+            </div>
+          </div>
+
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-xs">
+              <thead className="bg-slate-50 text-slate-500 font-semibold uppercase tracking-wider border-b border-slate-100">
+                <tr>
+                  <th className="px-4 py-3">Date</th>
+                  <th className="px-4 py-3">Holiday Name</th>
+                  <th className="px-4 py-3">Description</th>
+                  <th className="px-4 py-3">Added By</th>
+                  {isAdmin && <th className="px-4 py-3 text-right">Action</th>}
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100">
+                {holidays.length === 0 ? (
+                  <tr>
+                    <td colSpan={isAdmin ? 5 : 4} className="text-center py-8 text-slate-400">
+                      No company holidays currently scheduled.
+                    </td>
+                  </tr>
+                ) : (
+                  holidays.map((h) => (
+                    <tr key={h.holiday_id} className="hover:bg-slate-50/60 transition">
+                      <td className="px-4 py-3 font-semibold text-purple-900">
+                        {h.holiday_date}
+                      </td>
+                      <td className="px-4 py-3 font-medium text-slate-900 flex items-center gap-1.5">
+                        <Sparkles className="w-3.5 h-3.5 text-purple-500" />
+                        {h.name}
+                      </td>
+                      <td className="px-4 py-3 text-slate-600">
+                        {h.description || '—'}
+                      </td>
+                      <td className="px-4 py-3 text-slate-400 font-mono text-[11px]">
+                        {h.created_by || 'Admin'}
+                      </td>
+                      {isAdmin && (
+                        <td className="px-4 py-3 text-right">
+                          <button
+                            onClick={() => handleDeleteHoliday(h.holiday_id, h.name)}
+                            className="p-1.5 text-rose-500 hover:text-rose-700 hover:bg-rose-50 rounded-lg transition"
+                            title="Delete Holiday"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </td>
+                      )}
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
 
       {/* Leave Request Modal */}
       {modalOpen && (
@@ -485,6 +662,79 @@ export const LeavesPage: React.FC = () => {
                   className="px-4 py-2 text-xs font-semibold text-white bg-blue-600 hover:bg-blue-700 rounded-lg shadow-sm transition disabled:opacity-50"
                 >
                   {submitting ? 'Submitting...' : 'Submit Application'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Add Company Holiday Modal (Admin) */}
+      {holidayModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-xs p-4">
+          <div className="bg-white rounded-2xl border border-slate-200 shadow-xl max-w-md w-full p-6 space-y-4 animate-in fade-in zoom-in-95 duration-150">
+            <div className="flex justify-between items-center border-b border-slate-100 pb-3">
+              <div className="flex items-center gap-2">
+                <Sparkles className="w-5 h-5 text-purple-600" />
+                <h3 className="text-lg font-bold text-slate-900">Add Company Holiday</h3>
+              </div>
+              <button
+                onClick={() => setHolidayModalOpen(false)}
+                className="text-slate-400 hover:text-slate-600 p-1 rounded-lg"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleCreateHoliday} className="space-y-4">
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 mb-1">Holiday Date</label>
+                <input
+                  type="date"
+                  required
+                  value={holidayDate}
+                  onChange={(e) => setHolidayDate(e.target.value)}
+                  className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm outline-none focus:ring-2 focus:ring-purple-500"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 mb-1">Holiday Name</label>
+                <input
+                  type="text"
+                  required
+                  value={holidayName}
+                  onChange={(e) => setHolidayName(e.target.value)}
+                  placeholder="e.g. Gandhi Jayanti, Diwali, Thanksgiving"
+                  className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm outline-none focus:ring-2 focus:ring-purple-500"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 mb-1">Description (Optional)</label>
+                <textarea
+                  rows={2}
+                  value={holidayDesc}
+                  onChange={(e) => setHolidayDesc(e.target.value)}
+                  placeholder="e.g. Official national public holiday"
+                  className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm outline-none focus:ring-2 focus:ring-purple-500"
+                />
+              </div>
+
+              <div className="flex justify-end gap-2 pt-2 border-t border-slate-100">
+                <button
+                  type="button"
+                  onClick={() => setHolidayModalOpen(false)}
+                  className="px-4 py-2 text-xs font-medium text-slate-600 hover:bg-slate-100 rounded-lg transition"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={holidaySubmitting}
+                  className="px-4 py-2 text-xs font-semibold text-white bg-purple-600 hover:bg-purple-700 rounded-lg shadow-sm transition disabled:opacity-50"
+                >
+                  {holidaySubmitting ? 'Adding...' : 'Save Holiday'}
                 </button>
               </div>
             </form>

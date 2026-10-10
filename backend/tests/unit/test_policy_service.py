@@ -6,7 +6,7 @@ from unittest.mock import MagicMock
 import pytest
 
 from app.schemas.policy import ComplianceStatus
-from app.services.policy_service import PolicyService
+from app.services.policy_service import PolicyService, compute_pre_hire_workdays
 
 
 @pytest.fixture
@@ -288,3 +288,98 @@ def test_policy_partial_leave_reduces_requirement_proportionally(policy_service)
     assert res.required_days == 2
     assert res.required_hours == 10.0
     assert res.total_office_hours == 10.0
+
+
+def test_compute_pre_hire_workdays():
+    """Verify pre-hire business days calculation for various onboarding scenarios."""
+    week_start = date(2026, 9, 28)  # Monday
+    week_end = date(2026, 10, 4)   # Sunday
+
+    # Hired before week starts
+    assert compute_pre_hire_workdays(date(2026, 9, 1), week_start, week_end) == 0
+    # Hired on Monday of the week
+    assert compute_pre_hire_workdays(date(2026, 9, 28), week_start, week_end) == 0
+    # Hired on Wednesday (Mon & Tue are pre-hire -> 2 days)
+    assert compute_pre_hire_workdays(date(2026, 9, 30), week_start, week_end) == 2
+    # Hired on Friday (Mon, Tue, Wed, Thu -> 4 days)
+    assert compute_pre_hire_workdays(date(2026, 10, 2), week_start, week_end) == 4
+    # Hired following week
+    assert compute_pre_hire_workdays(date(2026, 10, 5), week_start, week_end) == 5
+    # None or empty
+    assert compute_pre_hire_workdays(None, week_start, week_end) == 0
+
+
+def test_policy_holiday_pro_rata_deduction(policy_service):
+    """1 company holiday scales required targets down from 3d/15h to 2d/10h."""
+    week_start = date(2026, 9, 28)
+    week_end = date(2026, 10, 4)
+    records = [
+        {"work_date": "2026-09-29", "attendance_status": "COMPLETED", "duration_seconds": 5 * 3600},
+        {"work_date": "2026-09-30", "attendance_status": "COMPLETED", "duration_seconds": 5 * 3600},
+    ]
+
+    res = policy_service.evaluate_weekly_compliance(
+        employee_id="EMP_HOLIDAY",
+        week_start=week_start,
+        week_end=week_end,
+        completed_records_in_week=records,
+        is_completed_week=True,
+        holidays_count=1,
+    )
+
+    assert res.compliance_status == ComplianceStatus.COMPLIANT
+    assert res.office_days == 2
+    assert res.required_days == 2
+    assert res.required_hours == 10.0
+    assert res.total_office_hours == 10.0
+    assert res.holidays_count == 1
+
+
+def test_policy_midweek_joiner_pro_rata_deduction(policy_service):
+    """Employee onboarding on Wednesday (2 pre-hire workdays) scales target down to 1d/5h."""
+    week_start = date(2026, 9, 28)
+    week_end = date(2026, 10, 4)
+    pre_hire = compute_pre_hire_workdays(date(2026, 9, 30), week_start, week_end)
+    assert pre_hire == 2
+
+    # Employee attends 1 day on Thursday for 5 hours
+    records = [
+        {"work_date": "2026-10-01", "attendance_status": "COMPLETED", "duration_seconds": 5 * 3600},
+    ]
+
+    res = policy_service.evaluate_weekly_compliance(
+        employee_id="EMP_NEW_HIRE",
+        week_start=week_start,
+        week_end=week_end,
+        completed_records_in_week=records,
+        is_completed_week=True,
+        pre_hire_workdays=pre_hire,
+    )
+
+    assert res.compliance_status == ComplianceStatus.COMPLIANT
+    assert res.office_days == 1
+    assert res.required_days == 1
+    assert res.required_hours == 5.0
+    assert res.total_office_hours == 5.0
+    assert res.pre_hire_workdays == 2
+
+
+def test_policy_combined_holiday_and_midweek_joiner_exempt(policy_service):
+    """1 holiday + 2 pre-hire days = 3 total deductible days -> 0 required days (EXEMPT)."""
+    week_start = date(2026, 9, 28)
+    week_end = date(2026, 10, 4)
+
+    res = policy_service.evaluate_weekly_compliance(
+        employee_id="EMP_JOINER_HOLIDAY",
+        week_start=week_start,
+        week_end=week_end,
+        completed_records_in_week=[],
+        is_completed_week=True,
+        holidays_count=1,
+        pre_hire_workdays=2,
+    )
+
+    assert res.compliance_status == ComplianceStatus.EXEMPT
+    assert res.required_days == 0
+    assert res.required_hours == 0.0
+    assert len(res.violation_reasons) == 0

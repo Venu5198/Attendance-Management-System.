@@ -146,3 +146,25 @@ async def test_evaluate_and_dispatch_notifications(
     assert len(logs) == 1
     assert logs[0]["recipient"] == "violator@company.com"
     assert logs[0]["delivery_status"] == "SENT"
+
+
+@pytest.mark.asyncio
+async def test_compliance_health_scores_endpoint(
+    async_client: AsyncClient,
+    seed_admin_user,
+    setup_completed_week_data,
+):
+    """Admin queries rolling 4-week compliance health scores."""
+    headers = seed_admin_user["headers"]
+
+    res = await async_client.get("/api/v1/violations/health-scores", headers=headers)
+    assert res.status_code == 200
+    scores = res.json()
+    assert len(scores) >= 2
+    # Verify structure
+    s1 = scores[0]
+    assert "health_score" in s1
+    assert "health_rating" in s1
+    assert "chronic_issue" in s1
+    assert len(s1["weekly_history"]) == 4
+    assert s1["total_evaluated_weeks"] == 4

@@ -39,3 +39,17 @@ class RegularizationResponse(BaseModel):
     reviewed_by: str | None = None
     reviewed_at: datetime | None = None
     admin_notes: str | None = None
+
+
+class BulkRegularizationReviewRequest(BaseModel):
+    request_ids: list[str] = Field(..., min_length=1, max_length=50, description="List of request IDs to review")
+    action: RegularizationStatus = Field(..., description="APPROVED or REJECTED")
+    admin_notes: str | None = Field(None, max_length=500, description="Admin review remarks")
+
+
+class BulkRegularizationReviewResponse(BaseModel):
+    total_requested: int
+    success_count: int
+    failed_count: int
+    updated_ids: list[str]
+    errors: list[str] = []

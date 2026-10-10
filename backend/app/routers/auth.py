@@ -7,7 +7,7 @@ from pymongo.asynchronous.database import AsyncDatabase
 
 from app.database import get_database
 from app.dependencies import get_current_user, require_admin
-from app.schemas.auth import TokenResponse, UserCreate, UserLogin, UserResponse
+from app.schemas.auth import RefreshTokenRequest, TokenResponse, UserCreate, UserLogin, UserResponse
 from app.services.auth_service import AuthService
 
 router = APIRouter(prefix="/auth", tags=["Authentication"])
@@ -25,6 +25,20 @@ async def login(
     """Authenticate with username/email and password to receive JWT bearer token."""
     service = AuthService(db)
     return await service.authenticate_user(credentials)
+
+
+@router.post(
+    "/refresh-token",
+    response_model=TokenResponse,
+    summary="Renew access token using refresh token",
+)
+async def refresh_access_token(
+    body: RefreshTokenRequest,
+    db: Annotated[AsyncDatabase, Depends(get_database)],
+):
+    """Renew access token silently without re-entering credentials."""
+    service = AuthService(db)
+    return await service.refresh_access_token(body.refresh_token)
 
 
 @router.post(

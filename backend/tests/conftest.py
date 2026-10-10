@@ -42,6 +42,7 @@ async def clean_collections(test_db):
     await test_db.notification_logs.delete_many({})
     await test_db.attendance_regularizations.delete_many({})
     await test_db.leaves.delete_many({})
+    await test_db.holidays.delete_many({})
     yield
 
 

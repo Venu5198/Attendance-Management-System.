@@ -141,6 +141,9 @@ async def ensure_indexes(db: AsyncDatabase) -> None:
     await db.leaves.create_index([("status", ASCENDING)], name="idx_leaves_status")
     await db.leaves.create_index([("start_date", ASCENDING), ("end_date", ASCENDING)], name="idx_leaves_dates")
 
+    # 8. Holidays collection indexes
+    await db.holidays.create_index([("holiday_date", ASCENDING)], unique=True, name="idx_holiday_date_unique")
+
     logger.info("MongoDB indexes successfully created.")
 
 

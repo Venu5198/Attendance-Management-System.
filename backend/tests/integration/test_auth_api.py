@@ -44,3 +44,27 @@ async def test_auth_get_me(async_client: AsyncClient, seed_employee_user):
     assert data["username"] == "testemp"
     assert data["role"] == "EMPLOYEE"
     assert data["employee_id"] == "EMP_TEST_01"
+
+
+@pytest.mark.asyncio
+async def test_auth_refresh_token_flow(async_client: AsyncClient, seed_employee_user):
+    """Log in, receive refresh token, use it to get a fresh access token."""
+    login_resp = await async_client.post(
+        "/api/v1/auth/login",
+        json={"username": "testemp", "password": "EmpSecret123!"},
+    )
+    assert login_resp.status_code == 200
+    login_data = login_resp.json()
+    refresh_token = login_data["refresh_token"]
+    assert refresh_token is not None
+
+    # Use refresh token
+    refresh_resp = await async_client.post(
+        "/api/v1/auth/refresh-token",
+        json={"refresh_token": refresh_token},
+    )
+    assert refresh_resp.status_code == 200
+    refreshed_data = refresh_resp.json()
+    assert refreshed_data["access_token"] is not None
+    assert refreshed_data["refresh_token"] is not None
+    assert refreshed_data["username"] == "testemp"
