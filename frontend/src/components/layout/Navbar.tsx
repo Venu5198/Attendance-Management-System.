@@ -1,6 +1,7 @@
 import React from "react";
 import { useAuth } from "../../auth/AuthContext";
 import { LogOut, UserCircle } from "lucide-react";
+import { AssistantCommandBar } from "../Assistant/AssistantCommandBar";
 
 export const Navbar: React.FC = () => {
   const { user, logout } = useAuth();
@@ -12,6 +13,9 @@ export const Navbar: React.FC = () => {
           Attendance Management System
         </span>
       </div>
+
+      {/* Natural Language Assistant Command Bar */}
+      <AssistantCommandBar compact />
 
       <div className="flex items-center gap-4">
         <div className="flex items-center gap-2 text-right">

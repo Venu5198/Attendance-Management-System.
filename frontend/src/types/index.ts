@@ -257,4 +257,15 @@ export interface ComplianceHealthScore {
   weekly_history: WeeklyScoreRecord[];
 }
 
+export interface AssistantQueryResponse {
+  query: string;
+  intent: string;
+  headline: string;
+  answer: string;
+  action_url: string | null;
+  data: unknown;
+  suggestions: string[];
+}
+
+
 
