@@ -16,10 +16,13 @@ apiClient.interceptors.request.use(
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
+    const tenantId = localStorage.getItem("tenant_id") || "default";
+    config.headers["X-Tenant-ID"] = tenantId;
     return config;
   },
   (error) => Promise.reject(error)
 );
+
 
 let isRefreshing = false;
 let failedQueue: Array<{

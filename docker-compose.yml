@@ -18,6 +18,44 @@ services:
       retries: 5
       start_period: 5s
 
+  redis:
+    image: redis:7-alpine
+    container_name: attendance_redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - attendance-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 3s
+
+  rabbitmq:
+    image: rabbitmq:3-management-alpine
+    container_name: attendance_rabbitmq
+    restart: unless-stopped
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    environment:
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_USER:-guest}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASS:-guest}
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+    networks:
+      - attendance-network
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
   backend:
     build:
       context: ./backend
@@ -28,6 +66,10 @@ services:
       - "8000:8000"
     depends_on:
       mongodb:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      rabbitmq:
         condition: service_healthy
     networks:
       - attendance-network
@@ -40,6 +82,12 @@ services:
       - MONGO_DB=${MONGO_DB:-attendance_db}
       - MONGODB_URI=${MONGO_URI:-mongodb://mongodb:27017}
       - MONGODB_DATABASE=${MONGO_DB:-attendance_db}
+      - REDIS_URI=${REDIS_URI:-redis://redis:6379/0}
+      - RABBITMQ_URI=amqp://guest:guest@rabbitmq:5672//
+      - CELERY_BROKER_URL=amqp://guest:guest@rabbitmq:5672//
+      - CELERY_RESULT_BACKEND=redis://redis:6379/1
+      - KIOSK_API_KEY=${KIOSK_API_KEY:-kiosk-secret-key-prod-branch-01}
+      - KIOSK_ALLOWED_IPS=${KIOSK_ALLOWED_IPS:-127.0.0.1,::1,192.168.1.0/24}
       - JWT_SECRET_KEY=${JWT_SECRET_KEY:-dev-secret-key-for-docker-compose-attendance-system-32ch!}
       - JWT_ALGORITHM=${JWT_ALGORITHM:-HS256}
       - ACCESS_TOKEN_EXPIRE_MINUTES=${ACCESS_TOKEN_EXPIRE_MINUTES:-480}
@@ -63,6 +111,39 @@ services:
       retries: 3
       start_period: 10s
 
+  celery_worker:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: attendance_celery_worker
+    command: celery -A app.celery_app.celery worker --loglevel=info -E
+    restart: unless-stopped
+    depends_on:
+      mongodb:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    networks:
+      - attendance-network
+    healthcheck:
+      disable: true
+    volumes:
+      - ./backend:/app
+    env_file:
+      - .env
+    environment:
+      - MONGO_URI=${MONGO_URI:-mongodb://mongodb:27017}
+      - MONGO_DB=${MONGO_DB:-attendance_db}
+      - MONGODB_URI=${MONGO_URI:-mongodb://mongodb:27017}
+      - MONGODB_DATABASE=${MONGO_DB:-attendance_db}
+      - REDIS_URI=${REDIS_URI:-redis://redis:6379/0}
+      - RABBITMQ_URI=amqp://guest:guest@rabbitmq:5672//
+      - CELERY_BROKER_URL=amqp://guest:guest@rabbitmq:5672//
+      - CELERY_RESULT_BACKEND=redis://redis:6379/1
+      - COMPANY_TIMEZONE=${COMPANY_TIMEZONE:-Asia/Kolkata}
+
   frontend:
     build:
       context: ./frontend
@@ -85,6 +166,44 @@ services:
       retries: 3
       start_period: 5s
 
+  prometheus:
+    image: prom/prometheus:v2.53.0
+    container_name: attendance_prometheus
+    restart: unless-stopped
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus_data:/prometheus
+    networks:
+      - attendance-network
+    command:
+      - "--config.file=/etc/prometheus/prometheus.yml"
+      - "--storage.tsdb.path=/prometheus"
+      - "--web.console.libraries=/usr/share/prometheus/console_libraries"
+      - "--web.console.templates=/usr/share/prometheus/consoles"
+    depends_on:
+      backend:
+        condition: service_healthy
+
+  grafana:
+    image: grafana/grafana:11.1.0
+    container_name: attendance_grafana
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      - GF_SECURITY_ADMIN_USER=${GRAFANA_USER:-admin}
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_PASSWORD:-admin}
+      - GF_USERS_ALLOW_SIGN_UP=false
+    volumes:
+      - ./grafana/provisioning:/etc/grafana/provisioning:ro
+      - grafana_data:/var/lib/grafana
+    networks:
+      - attendance-network
+    depends_on:
+      - prometheus
+
 networks:
   attendance-network:
     name: attendance-network
@@ -94,3 +213,16 @@ volumes:
   mongodb_data:
     name: attendance_mongodb_data
     driver: local
+  redis_data:
+    name: attendance_redis_data
+    driver: local
+  rabbitmq_data:
+    name: attendance_rabbitmq_data
+    driver: local
+  prometheus_data:
+    name: attendance_prometheus_data
+    driver: local
+  grafana_data:
+    name: attendance_grafana_data
+    driver: local
+

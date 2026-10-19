@@ -2,11 +2,13 @@
 
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, status
+from fastapi import APIRouter, Depends, Security, status
+from fastapi.security import HTTPAuthorizationCredentials
 from pymongo.asynchronous.database import AsyncDatabase
 
+from app.core.redis_client import blacklist_token
 from app.database import get_database
-from app.dependencies import get_current_user, require_admin
+from app.dependencies import get_current_user, require_admin, security
 from app.schemas.auth import RefreshTokenRequest, TokenResponse, UserCreate, UserLogin, UserResponse
 from app.services.auth_service import AuthService
 
@@ -23,7 +25,8 @@ async def login(
     db: Annotated[AsyncDatabase, Depends(get_database)],
 ):
     """Authenticate with username/email and password to receive JWT bearer token."""
-    service = AuthService(db)
+    tenant_id = getattr(credentials, "tenant_id", None) or "default"
+    service = AuthService(db, tenant_id=tenant_id)
     return await service.authenticate_user(credentials)
 
 
@@ -52,9 +55,11 @@ async def register_user(
     current_admin: Annotated[dict, Depends(require_admin)],
     db: Annotated[AsyncDatabase, Depends(get_database)],
 ):
-    """Admin-only endpoint to provision user credentials for employees or administrators."""
-    service = AuthService(db)
+    """Admin-only endpoint to provision user credentials for employees or administrators within tenant."""
+    tenant_id = current_admin.get("tenant_id", "default")
+    service = AuthService(db, tenant_id=tenant_id)
     return await service.create_user(user_in)
+
 
 
 @router.get(
@@ -75,3 +80,18 @@ async def get_current_user_profile(
         is_active=current_user.get("is_active", True),
         created_at=current_user["created_at"],
     )
+
+
+@router.post(
+    "/logout",
+    status_code=status.HTTP_200_OK,
+    summary="Revoke current token and logout (Redis Blacklist)",
+)
+async def logout(
+    credentials: Annotated[HTTPAuthorizationCredentials | None, Security(security)],
+):
+    """Revoke and invalidate bearer token in Redis cache."""
+    if credentials:
+        await blacklist_token(credentials.credentials)
+    return {"success": True, "message": "Logged out successfully. Token revoked."}
+

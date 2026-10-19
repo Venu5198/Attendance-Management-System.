@@ -2,13 +2,15 @@ import React, { useEffect, useState } from 'react';
 import { employeesApi } from '../../api';
 import type { Employee, EmployeeCreate } from '../../types';
 import { StatusBadge } from '../../components/common/StatusBadge';
-import { UserPlus, Search, Shield, Mail, CheckCircle2, AlertTriangle } from 'lucide-react';
+import { BulkImportModal } from '../../components/Employees/BulkImportModal';
+import { UserPlus, Search, Shield, Mail, CheckCircle2, AlertTriangle, FileSpreadsheet } from 'lucide-react';
 
 export const EmployeesPage: React.FC = () => {
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [showModal, setShowModal] = useState(false);
+  const [showBulkModal, setShowBulkModal] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [feedback, setFeedback] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
@@ -66,13 +68,22 @@ export const EmployeesPage: React.FC = () => {
           <h1 className="text-2xl font-bold text-slate-900">Employee Management</h1>
           <p className="text-sm text-slate-500">Manage employee accounts, roles, and company IDs</p>
         </div>
-        <button
-          onClick={() => setShowModal(true)}
-          className="px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-sm font-medium flex items-center gap-2 shadow-sm transition active:scale-95"
-        >
-          <UserPlus className="w-4 h-4" />
-          Add Employee
-        </button>
+        <div className="flex items-center gap-3">
+          <button
+            onClick={() => setShowBulkModal(true)}
+            className="px-4 py-2.5 bg-white border border-slate-200 hover:border-slate-300 hover:bg-slate-50 text-slate-700 rounded-xl text-sm font-medium flex items-center gap-2 shadow-xs transition active:scale-95"
+          >
+            <FileSpreadsheet className="w-4 h-4 text-emerald-600" />
+            Bulk Import (Excel)
+          </button>
+          <button
+            onClick={() => setShowModal(true)}
+            className="px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-sm font-medium flex items-center gap-2 shadow-sm transition active:scale-95"
+          >
+            <UserPlus className="w-4 h-4" />
+            Add Employee
+          </button>
+        </div>
       </div>
 
       {feedback && (
@@ -257,6 +268,12 @@ export const EmployeesPage: React.FC = () => {
           </div>
         </div>
       )}
+      {/* Async Celery Bulk Import Modal */}
+      <BulkImportModal
+        isOpen={showBulkModal}
+        onClose={() => setShowBulkModal(false)}
+        onImportComplete={loadEmployees}
+      />
     </div>
   );
 };

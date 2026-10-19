@@ -5,3 +5,6 @@ export * from './attendance';
 export * from './reports';
 export * from './violations';
 export * from './leaves';
+export * from './tasks';
+export * from './tenants';
+export * from './audit';

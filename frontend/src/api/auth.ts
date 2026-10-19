@@ -2,7 +2,7 @@ import { apiClient } from "./client";
 import type { LoginResponse, User } from "../types";
 
 export const authApi = {
-  login: async (credentials: { username: string; password: string }): Promise<LoginResponse> => {
+  login: async (credentials: { username: string; password: string; tenant_id?: string }): Promise<LoginResponse> => {
     const response = await apiClient.post<LoginResponse>("/auth/login", credentials);
     return response.data;
   },

@@ -11,6 +11,7 @@ export interface User {
   email: string;
   role: Role;
   employee_id: string | null;
+  tenant_id?: string;
   is_active: boolean;
   created_at?: string;
 }
@@ -24,7 +25,9 @@ export interface LoginResponse {
   username: string;
   role: Role;
   employee_id: string | null;
+  tenant_id?: string;
 }
+
 
 export interface Employee {
   employee_id: string;

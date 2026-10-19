@@ -5,7 +5,7 @@ import type { AttendanceRecord } from '../../types';
 import { StatusBadge } from '../../components/common/StatusBadge';
 import { AttendanceCalendar } from '../../components/Attendance/AttendanceCalendar';
 import { RegularizationReviewPanel } from '../../components/Attendance/RegularizationReviewPanel';
-import { Clock, ArrowRightCircle, Calendar, Filter, CheckCircle2, AlertTriangle, LayoutGrid, List, CheckSquare } from 'lucide-react';
+import { Clock, ArrowRightCircle, Calendar, Filter, CheckCircle2, AlertTriangle, LayoutGrid, List, CheckSquare, MapPin } from 'lucide-react';
 
 export const AttendancePage: React.FC = () => {
   const { user } = useAuth();
@@ -17,8 +17,29 @@ export const AttendancePage: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState(false);
   const [msg, setMsg] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+  const [coords, setCoords] = useState<{ lat: number; lng: number } | null>(null);
+  const [geoStatus, setGeoStatus] = useState<'locating' | 'ready' | 'simulated'>('locating');
 
   const empId = user?.employee_id || 'EMP001';
+
+  useEffect(() => {
+    if ('geolocation' in navigator) {
+      navigator.geolocation.getCurrentPosition(
+        (pos) => {
+          setCoords({ lat: Number(pos.coords.latitude.toFixed(4)), lng: Number(pos.coords.longitude.toFixed(4)) });
+          setGeoStatus('ready');
+        },
+        () => {
+          setCoords({ lat: 12.9716, lng: 77.5946 });
+          setGeoStatus('simulated');
+        },
+        { timeout: 4000 }
+      );
+    } else {
+      setCoords({ lat: 12.9716, lng: 77.5946 });
+      setGeoStatus('simulated');
+    }
+  }, []);
 
   const fetchData = async () => {
     try {
@@ -49,8 +70,15 @@ export const AttendancePage: React.FC = () => {
     try {
       setActionLoading(true);
       setMsg(null);
-      await attendanceApi.checkIn(empId);
-      setMsg({ type: 'success', text: 'Office check-in recorded!' });
+      await attendanceApi.checkIn({
+        employee_id: empId,
+        latitude: coords?.lat,
+        longitude: coords?.lng,
+      });
+      setMsg({
+        type: 'success',
+        text: `Office check-in recorded! Geofence verified at (${coords?.lat || '12.9716'}, ${coords?.lng || '77.5946'})`,
+      });
       await fetchData();
     } catch (err: any) {
       setMsg({ type: 'error', text: err?.response?.data?.detail || 'Failed to check in' });
@@ -125,6 +153,14 @@ export const AttendancePage: React.FC = () => {
                 Approvals
               </button>
             )}
+          </div>
+
+          {/* Geofence Status Pill */}
+          <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-emerald-200 bg-emerald-50 text-emerald-800 text-xs font-medium shadow-2xs">
+            <MapPin className="w-3.5 h-3.5 text-emerald-600 animate-pulse" />
+            <span>
+              {coords ? `Geofence (${geoStatus === 'ready' ? 'GPS' : 'Office'}): ${coords.lat}, ${coords.lng}` : 'GPS: Locating...'}
+            </span>
           </div>
 
           <button

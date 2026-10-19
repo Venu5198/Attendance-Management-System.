@@ -4,24 +4,24 @@ test.describe('End-to-End Attendance Management Platform Tests', () => {
   test('redirects unauthenticated visit to /login', async ({ page }) => {
     await page.goto('/dashboard');
     await expect(page).toHaveURL(/.*\/login/);
-    await expect(page.locator('input[type="text"]')).toBeVisible();
-    await expect(page.locator('input[type="password"]')).toBeVisible();
+    await expect(page.locator('input#username')).toBeVisible();
+    await expect(page.locator('input#password')).toBeVisible();
   });
 
   test('displays error alert on invalid credentials', async ({ page }) => {
     await page.goto('/login');
-    await page.fill('input[type="text"]', 'invalid_user');
-    await page.fill('input[type="password"]', 'WrongPassword123!');
+    await page.fill('input#username', 'invalid_user');
+    await page.fill('input#password', 'WrongPassword123!');
     await page.click('button[type="submit"]');
 
-    const alert = page.locator('text=Invalid username or password');
+    const alert = page.locator('text=/Invalid (username or password|credentials)/');
     await expect(alert).toBeVisible();
   });
 
   test('admin login, dashboard metrics, and navigation flows', async ({ page }) => {
     await page.goto('/login');
-    await page.fill('input[type="text"]', 'admin');
-    await page.fill('input[type="password"]', 'AdminPass123!');
+    await page.fill('input#username', 'admin');
+    await page.fill('input#password', 'AdminPass123!');
     await page.click('button[type="submit"]');
 
     // Wait for redirection to dashboard and company overview heading
@@ -51,8 +51,8 @@ test.describe('End-to-End Attendance Management Platform Tests', () => {
 
   test('employee login, dashboard view, and role restriction', async ({ page }) => {
     await page.goto('/login');
-    await page.fill('input[type="text"]', 'emp001');
-    await page.fill('input[type="password"]', 'EmpPass123!');
+    await page.fill('input#username', 'emp001');
+    await page.fill('input#password', 'EmpPass123!');
     await page.click('button[type="submit"]');
 
     // Wait for dashboard and employee greeting

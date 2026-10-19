@@ -9,8 +9,26 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
 from app.config import get_settings
+from app.core.redis_client import close_redis_connection, connect_to_redis
 from app.database import close_mongo_connection, connect_to_mongo
-from app.routers import assistant, attendance, auth, employees, health, holidays, leaves, reports, violations
+from app.middleware.security import SecurityHeadersMiddleware
+from app.routers import (
+    assistant,
+    attendance,
+    auth,
+    employees,
+    health,
+    holidays,
+    leaves,
+    reports,
+    tasks_router,
+    violations,
+    webhooks,
+    tenants_router,
+    audit_router,
+    websocket_router,
+)
+from app.routers.graphql_router import graphql_app
 from app.scheduler.jobs import shutdown_scheduler, start_scheduler
 
 logging.basicConfig(
@@ -27,15 +45,21 @@ async def lifespan(app: FastAPI):
     # 1. Connect to MongoDB & ensure indexes
     await connect_to_mongo()
 
-    # 2. Start background scheduler
+    # 2. Connect to Redis (distributed locks, cache, token blacklist)
+    await connect_to_redis()
+
+    # 3. Start background scheduler
     start_scheduler()
 
     yield
 
-    # 3. Shutdown background scheduler
+    # 4. Shutdown background scheduler
     shutdown_scheduler()
 
-    # 4. Disconnect from MongoDB
+    # 5. Close Redis connection
+    await close_redis_connection()
+
+    # 6. Disconnect from MongoDB
     await close_mongo_connection()
     logger.info("Application resources cleaned up successfully.")
 
@@ -54,16 +78,10 @@ def create_application() -> FastAPI:
         lifespan=lifespan,
     )
 
-    # Security Headers Middleware
-    @app.middleware("http")
-    async def add_security_headers(request: Request, call_next):
-        response = await call_next(request)
-        response.headers["X-Content-Type-Options"] = "nosniff"
-        response.headers["X-Frame-Options"] = "DENY"
-        response.headers["X-XSS-Protection"] = "1; mode=block"
-        return response
+    # 1. Production Security Headers Middleware (CSP, HSTS, X-Frame-Options, X-Content-Type-Options)
+    app.add_middleware(SecurityHeadersMiddleware)
 
-    # CORS configuration
+    # 2. CORS configuration
     origins = settings.cors_origins_list
     app.add_middleware(
         CORSMiddleware,
@@ -121,9 +139,26 @@ def create_application() -> FastAPI:
     app.include_router(reports.router, prefix=api_prefix)
     app.include_router(violations.router, prefix=api_prefix)
     app.include_router(assistant.router, prefix=api_prefix)
+    app.include_router(webhooks.router, prefix=api_prefix)
+    app.include_router(tasks_router.router, prefix=api_prefix)
+    app.include_router(tenants_router.router, prefix=api_prefix)
+    app.include_router(audit_router.router, prefix=api_prefix)
+    app.include_router(websocket_router.router)
+
+    # Strawberry GraphQL endpoints
+    app.include_router(graphql_app, prefix="/graphql", tags=["GraphQL"])
+    app.include_router(graphql_app, prefix=f"{api_prefix}/graphql", tags=["GraphQL"])
 
     # Also register root health check
     app.include_router(health.router)
+
+    # 3. Prometheus Metrics Instrumentation & /metrics exposition
+    from prometheus_fastapi_instrumentator import Instrumentator
+    Instrumentator(
+        should_group_status_codes=False,
+        should_ignore_untemplated=True,
+        excluded_handlers=["/metrics", "/health", "/health/live", "/health/ready"],
+    ).instrument(app).expose(app, endpoint="/metrics", include_in_schema=True, tags=["Monitoring"])
 
     return app
 

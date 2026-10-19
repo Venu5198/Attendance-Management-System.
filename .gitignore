@@ -62,3 +62,18 @@ frontend/dist-ssr/
 Thumbs.db
 *.log
 logs/
+
+# Linter caches
+.ruff_cache/
+
+# Sample spreadsheet binaries
+*.xlsx
+
+# Documentation & demo manuals
+CLIENT_DEMO_MANUAL.md
+docs/
+
+# Duplicate backend scratch scripts
+backend/create_sample_excel.py
+backend/generate_traffic.py
+backend/test_deduplication_live.py

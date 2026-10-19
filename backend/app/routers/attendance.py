@@ -89,7 +89,8 @@ async def check_in(
     lat = body.latitude if body else None
     lng = body.longitude if body else None
 
-    service = AttendanceService(db)
+    tenant_id = current_user.get("tenant_id", "default")
+    service = AttendanceService(db, tenant_id=tenant_id)
     return await service.check_in(target_emp_id, client_ip=remote_ip, latitude=lat, longitude=lng)
 
 
@@ -109,7 +110,8 @@ async def check_out(
     """
     req_eid = body.employee_id if body else None
     target_emp_id = resolve_employee_id(current_user, req_eid)
-    service = AttendanceService(db)
+    tenant_id = current_user.get("tenant_id", "default")
+    service = AttendanceService(db, tenant_id=tenant_id)
     return await service.check_out(target_emp_id)
 
 
@@ -125,7 +127,8 @@ async def get_today_status(
 ):
     """Fetch today's attendance status. Shows NOT_ATTENDED if not checked in today."""
     target_emp_id = resolve_employee_id(current_user, employee_id)
-    service = AttendanceService(db)
+    tenant_id = current_user.get("tenant_id", "default")
+    service = AttendanceService(db, tenant_id=tenant_id)
     return await service.get_today_status(target_emp_id)
 
 
@@ -143,8 +146,10 @@ async def get_employee_history(
 ):
     """Retrieve historical attendance records. Restricted to Admin or the employee."""
     verify_employee_ownership(current_user, employee_id)
-    service = AttendanceService(db)
+    tenant_id = current_user.get("tenant_id", "default")
+    service = AttendanceService(db, tenant_id=tenant_id)
     return await service.get_employee_history(employee_id, start_date=start_date, end_date=end_date)
+
 
 
 @router.post(

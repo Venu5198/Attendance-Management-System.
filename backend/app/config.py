@@ -41,6 +41,52 @@ class Settings(BaseSettings):
         description="Database name",
     )
 
+    # Redis Cache, Locks & Session Store
+    REDIS_URI: str = Field(
+        default="redis://localhost:6379/0",
+        validation_alias=AliasChoices("REDIS_URI", "REDIS_URL"),
+        description="Redis connection URI",
+    )
+    REDIS_ENABLED: bool = True
+    CACHE_DEFAULT_TTL_SECONDS: int = 300  # 5 minutes
+    RATE_LIMIT_DEFAULT_REQUESTS: int = 60  # per minute
+    RATE_LIMIT_CHECKIN_REQUESTS: int = 10  # per minute
+    IDEMPOTENCY_DEFAULT_TTL_SECONDS: int = 120  # Deduplication window
+
+    # RabbitMQ Message Broker & Celery Background Processing
+    RABBITMQ_URI: str = Field(
+        default="amqp://guest:guest@localhost:5672//",
+        validation_alias=AliasChoices("RABBITMQ_URI", "RABBITMQ_URL"),
+        description="RabbitMQ broker URI",
+    )
+    CELERY_BROKER_URL: str = Field(
+        default="amqp://guest:guest@localhost:5672//",
+        validation_alias=AliasChoices("CELERY_BROKER_URL", "CELERY_BROKER_URI"),
+        description="Celery broker connection URL",
+    )
+    CELERY_RESULT_BACKEND: str = Field(
+        default="redis://localhost:6379/1",
+        validation_alias=AliasChoices("CELERY_RESULT_BACKEND", "CELERY_BACKEND_URL"),
+        description="Celery result backend URL (Redis db 1)",
+    )
+
+    # Biometric Kiosk Hardware Integration (Webhooks & API Keys)
+    KIOSK_API_KEY: str = Field(
+        default="kiosk-secret-key-prod-branch-01",
+        description="Pre-shared secret API key for physical biometric attendance kiosks",
+    )
+    KIOSK_ALLOWED_IPS: str = "127.0.0.1,::1,192.168.1.0/24"
+
+    @property
+    def kiosk_allowed_ips_list(self) -> list[str]:
+        if not self.KIOSK_ALLOWED_IPS or self.KIOSK_ALLOWED_IPS.strip() == "*":
+            return ["*"]
+        return [ip.strip() for ip in self.KIOSK_ALLOWED_IPS.split(",") if ip.strip()]
+
+    # Outbound Webhook for Attendance Violations & Alerts
+    OUTBOUND_WEBHOOK_URL: str = ""
+    OUTBOUND_WEBHOOK_SECRET: str = ""
+
     # Security & JWT
     JWT_SECRET_KEY: str = Field(default="test-secret-key-for-development-attendance-backend-super-secret")
     JWT_ALGORITHM: str = "HS256"

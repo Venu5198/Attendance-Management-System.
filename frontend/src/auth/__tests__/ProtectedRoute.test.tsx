@@ -9,10 +9,12 @@ describe('ProtectedRoute Component', () => {
     vi.spyOn(AuthContextModule, 'useAuth').mockReturnValue({
       user: null,
       token: null,
+      tenantId: 'default',
       isAuthenticated: false,
       isLoading: true,
       login: vi.fn(),
       logout: vi.fn(),
+      setTenantId: vi.fn(),
     });
 
     const { container } = render(
@@ -31,10 +33,12 @@ describe('ProtectedRoute Component', () => {
     vi.spyOn(AuthContextModule, 'useAuth').mockReturnValue({
       user: null,
       token: null,
+      tenantId: 'default',
       isAuthenticated: false,
       isLoading: false,
       login: vi.fn(),
       logout: vi.fn(),
+      setTenantId: vi.fn(),
     });
 
     render(
@@ -69,10 +73,12 @@ describe('ProtectedRoute Component', () => {
         is_active: true,
       },
       token: 'valid-jwt-token',
+      tenantId: 'default',
       isAuthenticated: true,
       isLoading: false,
       login: vi.fn(),
       logout: vi.fn(),
+      setTenantId: vi.fn(),
     });
 
     render(

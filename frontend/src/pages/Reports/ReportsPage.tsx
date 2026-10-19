@@ -2,9 +2,11 @@ import React, { useState } from 'react';
 import { reportsApi } from '../../api';
 import type { AttendanceReportResponse } from '../../types';
 import { StatusBadge } from '../../components/common/StatusBadge';
-import { FileSpreadsheet, Search, Filter, Download, CheckCircle2, XCircle, Mail, Send, AlertTriangle } from 'lucide-react';
+import { AuditTrailPanel } from '../../components/Reports/AuditTrailPanel';
+import { FileSpreadsheet, Search, Filter, Download, CheckCircle2, XCircle, Mail, Send, AlertTriangle, Shield, BarChart3 } from 'lucide-react';
 
 export const ReportsPage: React.FC = () => {
+  const [activeTab, setActiveTab] = useState<'reports' | 'audit'>('reports');
   const [period, setPeriod] = useState<'daily' | 'weekly' | 'monthly' | 'yearly' | 'custom'>('weekly');
   const [date, setDate] = useState<string>(new Date().toISOString().slice(0, 10));
   const [startDate, setStartDate] = useState<string>('');
@@ -111,24 +113,47 @@ export const ReportsPage: React.FC = () => {
           </p>
         </div>
 
-        {report && (
-          <div className="flex gap-2.5">
+        <div className="flex flex-wrap items-center gap-3">
+          <div className="flex items-center bg-slate-100 p-1 rounded-xl border border-slate-200">
             <button
-              onClick={() => setShowEmailModal(true)}
-              className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-sm font-medium flex items-center gap-2 shadow-sm transition active:scale-95"
+              onClick={() => setActiveTab('reports')}
+              className={`px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition ${
+                activeTab === 'reports' ? 'bg-white text-blue-600 shadow-xs' : 'text-slate-600 hover:text-slate-900'
+              }`}
             >
-              <Mail className="w-4 h-4" />
-              Email Report
+              <BarChart3 className="w-3.5 h-3.5" />
+              Attendance Reports
             </button>
             <button
-              onClick={handleExportCSV}
-              className="px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-sm font-medium flex items-center gap-2 shadow-sm transition"
+              onClick={() => setActiveTab('audit')}
+              className={`px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition ${
+                activeTab === 'audit' ? 'bg-white text-blue-600 shadow-xs' : 'text-slate-600 hover:text-slate-900'
+              }`}
             >
-              <Download className="w-4 h-4" />
-              Export CSV
+              <Shield className="w-3.5 h-3.5" />
+              Compliance Audit Trail
             </button>
           </div>
-        )}
+
+          {activeTab === 'reports' && report && (
+            <div className="flex gap-2">
+              <button
+                onClick={() => setShowEmailModal(true)}
+                className="px-3.5 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-semibold flex items-center gap-1.5 shadow-2xs transition active:scale-95"
+              >
+                <Mail className="w-3.5 h-3.5" />
+                Email Report
+              </button>
+              <button
+                onClick={handleExportCSV}
+                className="px-3.5 py-1.5 bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-xs font-semibold flex items-center gap-1.5 shadow-2xs transition"
+              >
+                <Download className="w-3.5 h-3.5" />
+                Export CSV
+              </button>
+            </div>
+          )}
+        </div>
       </div>
 
       {feedback && (
@@ -144,8 +169,12 @@ export const ReportsPage: React.FC = () => {
         </div>
       )}
 
-      {/* Control Bar */}
-      <form onSubmit={handleGenerate} className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm space-y-4">
+      {activeTab === 'audit' ? (
+        <AuditTrailPanel />
+      ) : (
+        <>
+          {/* Control Bar */}
+          <form onSubmit={handleGenerate} className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm space-y-4">
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 items-end">
           <div>
             <label className="block text-xs font-semibold text-slate-600 mb-1">Report Period</label>
@@ -362,6 +391,8 @@ export const ReportsPage: React.FC = () => {
             </form>
           </div>
         </div>
+      )}
+        </>
       )}
     </div>
   );

@@ -1,4 +1,4 @@
-"""Pydantic schemas for authentication and user accounts."""
+"""Pydantic schemas for authentication and user accounts with multi-tenancy support."""
 
 from datetime import datetime
 
@@ -8,6 +8,7 @@ from pydantic import BaseModel, EmailStr, Field
 class UserLogin(BaseModel):
     username: str = Field(..., description="Username or email")
     password: str = Field(..., min_length=6, description="User password")
+    tenant_id: str = Field(default="default", description="Tenant organization ID")
 
 
 class TokenResponse(BaseModel):
@@ -19,6 +20,7 @@ class TokenResponse(BaseModel):
     username: str
     role: str
     employee_id: str | None = None
+    tenant_id: str = "default"
 
 
 class RefreshTokenRequest(BaseModel):
@@ -30,6 +32,7 @@ class TokenPayload(BaseModel):
     username: str
     role: str
     employee_id: str | None = None
+    tenant_id: str = "default"
     exp: int | None = None
 
 
@@ -39,6 +42,7 @@ class UserCreate(BaseModel):
     password: str = Field(..., min_length=6)
     role: str = Field(default="EMPLOYEE", pattern="^(ADMIN|EMPLOYEE)$")
     employee_id: str | None = None
+    tenant_id: str = Field(default="default", description="Tenant organization ID")
 
 
 class UserResponse(BaseModel):
@@ -47,5 +51,6 @@ class UserResponse(BaseModel):
     email: str
     role: str
     employee_id: str | None = None
+    tenant_id: str = "default"
     is_active: bool
     created_at: datetime

@@ -24,12 +24,34 @@ jobs:
           --health-interval 10s
           --health-timeout 5s
           --health-retries 5
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+      rabbitmq:
+        image: rabbitmq:3-management-alpine
+        ports:
+          - 5672:5672
+        options: >-
+          --health-cmd "rabbitmq-diagnostics -q ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
 
     env:
       MONGO_URI: mongodb://localhost:27017
       MONGO_DB: attendance_test_db
       MONGODB_URI: mongodb://localhost:27017
       MONGODB_DATABASE: attendance_test_db
+      REDIS_URI: redis://localhost:6379/0
+      RABBITMQ_URI: amqp://guest:guest@localhost:5672//
+      CELERY_BROKER_URL: amqp://guest:guest@localhost:5672//
+      CELERY_RESULT_BACKEND: redis://localhost:6379/1
       JWT_SECRET_KEY: ci-test-secret-key-32-chars-long-minimum!
       JWT_ALGORITHM: HS256
       ACCESS_TOKEN_EXPIRE_MINUTES: 60
@@ -78,6 +100,11 @@ jobs:
         working-directory: ./backend
         run: |
           pytest -v --cov=app --cov-report=term-missing --cov-fail-under=75 tests/
+
+      - name: Run QA Policy Simulation Transaction Suite
+        working-directory: ./backend
+        run: |
+          python scripts/simulate_worker_cycles.py
 
   # ============================================================
   # 2. Frontend Testing & Static Analysis (Lint, Build, Vitest)
@@ -135,12 +162,34 @@ jobs:
           --health-interval 10s
           --health-timeout 5s
           --health-retries 5
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+      rabbitmq:
+        image: rabbitmq:3-management-alpine
+        ports:
+          - 5672:5672
+        options: >-
+          --health-cmd "rabbitmq-diagnostics -q ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
 
     env:
       MONGO_URI: mongodb://localhost:27017
       MONGO_DB: attendance_e2e_db
       MONGODB_URI: mongodb://localhost:27017
       MONGODB_DATABASE: attendance_e2e_db
+      REDIS_URI: redis://localhost:6379/0
+      RABBITMQ_URI: amqp://guest:guest@localhost:5672//
+      CELERY_BROKER_URL: amqp://guest:guest@localhost:5672//
+      CELERY_RESULT_BACKEND: redis://localhost:6379/1
       JWT_SECRET_KEY: ci-test-secret-key-32-chars-long-minimum!
       JWT_ALGORITHM: HS256
       EMAIL_PROVIDER: mock
@@ -185,6 +234,7 @@ jobs:
       - name: Launch Services & Run Playwright E2E Suite
         run: |
           cd backend && uvicorn app.main:app --host 127.0.0.1 --port 8000 &
+          cd backend && celery -A app.celery_app.celery worker --loglevel=info -E &
           cd frontend && npx vite preview --port 5173 --host 127.0.0.1 &
           sleep 6
           curl -f http://127.0.0.1:8000/health

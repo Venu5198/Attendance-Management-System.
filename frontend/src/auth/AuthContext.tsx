@@ -5,10 +5,12 @@ import { authApi } from "../api/auth";
 interface AuthContextType {
   user: User | null;
   token: string | null;
+  tenantId: string;
   isAuthenticated: boolean;
   isLoading: boolean;
-  login: (username: string, password: string) => Promise<User>;
+  login: (username: string, password: string, tenantId?: string) => Promise<User>;
   logout: () => void;
+  setTenantId: (tenantId: string) => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -19,7 +21,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return saved ? JSON.parse(saved) : null;
   });
   const [token, setToken] = useState<string | null>(() => localStorage.getItem("auth_token"));
+  const [tenantId, setTenantIdState] = useState<string>(() => localStorage.getItem("tenant_id") || "default");
   const [isLoading, setIsLoading] = useState<boolean>(true);
+
+  const setTenantId = (newTenant: string) => {
+    const clean = newTenant.trim() || "default";
+    localStorage.setItem("tenant_id", clean);
+    setTenantIdState(clean);
+  };
 
   useEffect(() => {
     const verifyUser = async () => {
@@ -28,6 +37,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         try {
           const profile = await authApi.getMe();
           setUser(profile);
+          const currentLocalTenant = localStorage.getItem("tenant_id");
+          if (!currentLocalTenant && profile.tenant_id) {
+            setTenantId(profile.tenant_id);
+          }
           localStorage.setItem("auth_user", JSON.stringify(profile));
         } catch (err) {
           localStorage.removeItem("auth_token");
@@ -41,8 +54,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     verifyUser();
   }, []);
 
-  const login = async (username: string, password: string): Promise<User> => {
-    const res = await authApi.login({ username, password });
+  const login = async (username: string, password: string, chosenTenant?: string): Promise<User> => {
+    const activeTenant = (chosenTenant || tenantId || "default").trim();
+    setTenantId(activeTenant);
+
+    const res = await authApi.login({ username, password, tenant_id: activeTenant });
     localStorage.setItem("auth_token", res.access_token);
     if (res.refresh_token) {
       localStorage.setItem("refresh_token", res.refresh_token);
@@ -55,6 +71,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       email: res.username.includes("@") ? res.username : `${res.username}@company.com`,
       role: res.role,
       employee_id: res.employee_id,
+      tenant_id: res.tenant_id || activeTenant,
       is_active: true,
     };
     setUser(profile);
@@ -75,10 +92,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       value={{
         user,
         token,
+        tenantId,
         isAuthenticated: !!token && !!user,
         isLoading,
         login,
         logout,
+        setTenantId,
       }}
     >
       {children}
