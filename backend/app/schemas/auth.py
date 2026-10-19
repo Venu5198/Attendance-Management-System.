@@ -34,6 +34,7 @@ class TokenPayload(BaseModel):
     employee_id: str | None = None
     tenant_id: str = "default"
     exp: int | None = None
+    jti: str | None = None
 
 
 class UserCreate(BaseModel):

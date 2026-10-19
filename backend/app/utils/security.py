@@ -2,6 +2,7 @@
 
 from datetime import UTC, datetime, timedelta
 from typing import Any
+from uuid import uuid4
 
 import bcrypt
 import jwt
@@ -44,6 +45,7 @@ def create_access_token(
         {
             "exp": expire,
             "iat": now,
+            "jti": str(uuid4()),
         }
     )
 

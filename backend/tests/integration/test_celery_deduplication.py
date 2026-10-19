@@ -2,9 +2,10 @@
 
 import base64
 import io
+
+import openpyxl
 import pytest
 from httpx import ASGITransport, AsyncClient
-import openpyxl
 
 from app.celery_app import celery_app
 from app.core.deduplication import (
@@ -16,7 +17,6 @@ from app.core.deduplication import (
 from app.database import get_database
 from app.main import app
 from app.tasks.employee_tasks import process_employee_excel_import
-from app.utils.security import create_access_token
 
 
 @pytest.fixture(autouse=True)
@@ -109,19 +109,23 @@ async def test_celery_employee_excel_task_execution():
 
     # Verify directly in MongoDB
     db = await get_database()
-    emp_doc = await db["employees"].find_one({
-        "tenant_id": "tenant_celery_test",
-        "employee_id": "CELERY_EMP_01",
-    })
+    emp_doc = await db["employees"].find_one(
+        {
+            "tenant_id": "tenant_celery_test",
+            "employee_id": "CELERY_EMP_01",
+        }
+    )
     assert emp_doc is not None
     assert emp_doc["full_name"] == "Celery Alice"
     assert emp_doc["email"] == "celery_alice@tenantx.com"
 
     # Verify default user credentials were automatically created
-    user_doc = await db["users"].find_one({
-        "tenant_id": "tenant_celery_test",
-        "username": "CELERY_EMP_01",
-    })
+    user_doc = await db["users"].find_one(
+        {
+            "tenant_id": "tenant_celery_test",
+            "username": "CELERY_EMP_01",
+        }
+    )
     assert user_doc is not None
     assert user_doc["employee_id"] == "CELERY_EMP_01"
 

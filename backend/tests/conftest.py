@@ -34,7 +34,7 @@ async def test_db():
 
 @pytest_asyncio.fixture(autouse=True)
 async def clean_collections(test_db):
-    """Clean collections before each test to maintain strict isolation."""
+    """Clean collections and Redis state before each test to maintain strict isolation."""
     await test_db.attendance.delete_many({})
     await test_db.employees.delete_many({})
     await test_db.users.delete_many({})
@@ -43,6 +43,17 @@ async def clean_collections(test_db):
     await test_db.attendance_regularizations.delete_many({})
     await test_db.leaves.delete_many({})
     await test_db.holidays.delete_many({})
+
+    # Reset Redis blacklist and test cache
+    from app.core.redis_client import redis_manager
+
+    redis_manager._fallback_store.clear()
+    redis_manager._fallback_expirations.clear()
+    if redis_manager.client:
+        try:
+            await redis_manager.client.flushdb()
+        except Exception:
+            pass
     yield
 
 

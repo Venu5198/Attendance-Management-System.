@@ -1,5 +1,7 @@
 """Integration tests for attendance regularization workflow."""
 
+from datetime import UTC
+
 import pytest
 from httpx import AsyncClient
 
@@ -14,8 +16,9 @@ async def test_employee_submit_and_admin_approve_regularization(
     employee_id = seed_employee_user["employee"]["employee_id"]
 
     # 1. Submit regularization request (relative to current date within 14-day window)
-    from datetime import datetime, timezone, timedelta
-    recent_date = (datetime.now(timezone.utc) - timedelta(days=2)).strftime("%Y-%m-%d")
+    from datetime import datetime, timedelta
+
+    recent_date = (datetime.now(UTC) - timedelta(days=2)).strftime("%Y-%m-%d")
     payload = {
         "work_date": recent_date,
         "entry_time": f"{recent_date}T09:00:00Z",
@@ -59,8 +62,9 @@ async def test_admin_reject_regularization(async_client: AsyncClient, seed_emplo
     emp_headers = seed_employee_user["headers"]
     admin_headers = seed_admin_user["headers"]
 
-    from datetime import datetime, timezone, timedelta
-    recent_date_2 = (datetime.now(timezone.utc) - timedelta(days=3)).strftime("%Y-%m-%d")
+    from datetime import datetime, timedelta
+
+    recent_date_2 = (datetime.now(UTC) - timedelta(days=3)).strftime("%Y-%m-%d")
     payload = {
         "work_date": recent_date_2,
         "entry_time": f"{recent_date_2}T10:00:00Z",

@@ -4,7 +4,8 @@
 - Tenant-scoped check-in and Redis locks.
 """
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
+
 import pytest
 from httpx import AsyncClient
 
@@ -14,8 +15,9 @@ from app.utils.security import create_access_token
 @pytest.fixture
 def make_tenant_admin(test_db):
     """Factory fixture registering an admin user in test_db and returning auth headers."""
+
     async def _generator(tenant_id: str, admin_id: str = "admin_01"):
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         user_doc = {
             "user_id": f"{tenant_id}_{admin_id}",
             "tenant_id": tenant_id,
@@ -41,6 +43,7 @@ def make_tenant_admin(test_db):
             "Authorization": f"Bearer {token}",
             "X-Tenant-ID": tenant_id,
         }
+
     return _generator
 
 
@@ -136,7 +139,12 @@ async def test_multi_tenant_employee_directory_isolation(async_client: AsyncClie
 
     await async_client.post(
         "/api/v1/employees",
-        json={"employee_id": "EMP_ALPHA_1", "full_name": "Alpha John Doe", "email": "alpha@co.com", "department": "Eng"},
+        json={
+            "employee_id": "EMP_ALPHA_1",
+            "full_name": "Alpha John Doe",
+            "email": "alpha@co.com",
+            "department": "Eng",
+        },
         headers=alpha_admin,
     )
     await async_client.post(

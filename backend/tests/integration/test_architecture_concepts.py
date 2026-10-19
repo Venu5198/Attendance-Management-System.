@@ -12,12 +12,10 @@ import pytest
 from httpx import AsyncClient
 
 from app.core.redis_client import (
-    blacklist_token,
     cache_delete,
     cache_get,
     cache_set,
     is_rate_limited,
-    is_token_blacklisted,
     redis_distributed_lock,
 )
 
@@ -46,9 +44,7 @@ async def test_concept_1_graphql_query(async_client: AsyncClient, seed_employee_
 
 
 @pytest.mark.asyncio
-async def test_concept_1_and_2_biometric_webhook_and_kiosk_auth(
-    async_client: AsyncClient, test_db, seed_employee_user
-):
+async def test_concept_1_and_2_biometric_webhook_and_kiosk_auth(async_client: AsyncClient, test_db, seed_employee_user):
     """Concept 1 (Webhooks) & Concept 2 (Hardware API Key Auth): Biometric Punch."""
     emp_id = seed_employee_user["employee"]["employee_id"]
 
