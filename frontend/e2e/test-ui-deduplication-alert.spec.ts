@@ -34,7 +34,7 @@ test('UI Live Test: Rapid Duplicate Upload Intercepted by Redis', async ({ page 
   await page.click('button:has-text("Import Another File")');
 
   // Second Upload with same file within 120s TTL
-  await fileInput.setInputFiles(filePath);
+  await fileInput.setInputFiles(uploadPath);
   await page.click('button:has-text("Start Async Import")');
 
   // Should immediately reuse deduplicated task or show cached state
