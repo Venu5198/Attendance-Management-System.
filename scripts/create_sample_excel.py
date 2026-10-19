@@ -78,8 +78,11 @@ def generate_sample_xlsx():
                 max_len = len(val)
         ws.column_dimensions[col_letter].width = max(max_len + 4, 14)
 
-    output_path = "/app/employees_bulk_import_sample.xlsx"
-    wb.save(output_path)
+    from pathlib import Path
+
+    repo_root = Path(__file__).resolve().parent.parent
+    output_path = repo_root / "employees_bulk_import_sample.xlsx"
+    wb.save(str(output_path))
     print(f"[*] Successfully saved XLSX to {output_path}")
 
 if __name__ == "__main__":

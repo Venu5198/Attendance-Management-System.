@@ -1,5 +1,6 @@
-import { test, expect } from '@playwright/test';
+import fs from 'fs';
 import path from 'path';
+import { test, expect } from '@playwright/test';
 
 test('UI Live Test: Celery Bulk Upload with Real Progress & Deduplication Alert', async ({ page }) => {
   // 1. Login as Admin
@@ -17,10 +18,19 @@ test('UI Live Test: Celery Bulk Upload with Real Progress & Deduplication Alert'
   await page.click('button:has-text("Bulk Import")');
   await expect(page.locator('text=Async Bulk Employee Import')).toBeVisible();
 
-  // 4. Attach the real .xlsx file
-  const filePath = path.resolve('..', 'employees_bulk_import_sample.xlsx');
+  // 4. Attach sample file (fallback to test CSV if xlsx is absent)
+  const xlsxPath = path.resolve('..', 'employees_bulk_import_sample.xlsx');
+  const csvPath = path.resolve('..', 'employees_bulk_import_sample.csv');
+  let uploadPath = xlsxPath;
+  if (!fs.existsSync(xlsxPath)) {
+    fs.writeFileSync(
+      csvPath,
+      'employee_id,full_name,email,department,role,hire_date\nEMP101,Alexander Wright,alexander.wright@company.com,Engineering,EMPLOYEE,2024-03-15\n'
+    );
+    uploadPath = csvPath;
+  }
   const fileInput = page.locator('input[type="file"]');
-  await fileInput.setInputFiles(filePath);
+  await fileInput.setInputFiles(uploadPath);
 
   // 5. Click "Start Async Import"
   const startBtn = page.locator('button:has-text("Start Async Import")');

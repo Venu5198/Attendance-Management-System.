@@ -1,6 +1,7 @@
 import { test, expect } from '@playwright/test';
 
 test('Capture live Prometheus and Grafana traffic monitoring', async ({ page }) => {
+  test.skip(!!process.env.CI, 'Skip Prometheus and Grafana screenshot captures in headless CI pipeline');
   // 1. Prometheus Expression Browser
   await page.goto('http://localhost:9090/graph?g0.expr=sum(http_requests_total)&g0.tab=0&g0.stacked=0&g0.show_exemplars=0&g0.range_input=15m');
   await page.waitForTimeout(2000);

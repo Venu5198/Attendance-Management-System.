@@ -175,6 +175,7 @@ jobs:
         image: rabbitmq:3-management-alpine
         ports:
           - 5672:5672
+          - 15672:15672
         options: >-
           --health-cmd "rabbitmq-diagnostics -q ping"
           --health-interval 10s
@@ -221,6 +222,10 @@ jobs:
         working-directory: ./backend
         run: |
           python scripts/seed_data.py
+
+      - name: Generate E2E Sample Test File
+        run: |
+          python scripts/create_sample_excel.py
 
       - name: Install Playwright Browsers & OS Dependencies
         working-directory: ./frontend
