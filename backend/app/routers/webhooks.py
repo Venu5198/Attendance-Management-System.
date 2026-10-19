@@ -1,12 +1,12 @@
 """Webhooks API for Biometric Attendance Hardware and Outbound Event Integrations."""
 
+import logging
 from datetime import datetime
 from enum import StrEnum
-import logging
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, HTTPException, Header, Request, status
 import httpx
+from fastapi import APIRouter, Depends, HTTPException, Request, status
 from pydantic import BaseModel, Field
 from pymongo.asynchronous.database import AsyncDatabase
 
@@ -70,7 +70,6 @@ async def handle_biometric_punch(
 
     attendance_service = AttendanceService(db, tenant_id=payload.tenant_id)
 
-
     try:
         if payload.punch_type == PunchType.PUNCH_IN:
             await attendance_service.check_in(
@@ -96,7 +95,7 @@ async def handle_biometric_punch(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Failed to record punch: {exc}",
-        )
+        ) from exc
 
 
 async def dispatch_outbound_webhook(event_type: str, data: dict) -> bool:

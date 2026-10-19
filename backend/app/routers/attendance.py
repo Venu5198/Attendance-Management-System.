@@ -151,7 +151,6 @@ async def get_employee_history(
     return await service.get_employee_history(employee_id, start_date=start_date, end_date=end_date)
 
 
-
 @router.post(
     "/regularize",
     response_model=RegularizationResponse,

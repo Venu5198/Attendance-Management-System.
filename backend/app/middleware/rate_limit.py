@@ -1,9 +1,9 @@
 """Rate limiting middleware and dependency."""
 
 import logging
+
 from fastapi import HTTPException, Request, status
 
-from app.config import get_settings
 from app.core.redis_client import is_rate_limited
 
 logger = logging.getLogger(__name__)

@@ -1,7 +1,7 @@
 """Multi-Tenant Administration and Provisioning Router."""
 
-from datetime import datetime
 import logging
+from datetime import datetime
 from typing import Annotated, Any
 
 from fastapi import APIRouter, Depends, HTTPException, status
@@ -69,12 +69,14 @@ async def list_tenants(
     for t in tenants:
         tid = t["tenant_id"]
         # Count employees in this tenant
-        emp_count = await db.employees.count_documents({
-            "$or": [
-                {"tenant_id": tid},
-                *([{"tenant_id": {"$exists": False}}] if tid == "default" else []),
-            ]
-        })
+        emp_count = await db.employees.count_documents(
+            {
+                "$or": [
+                    {"tenant_id": tid},
+                    *([{"tenant_id": {"$exists": False}}] if tid == "default" else []),
+                ]
+            }
+        )
         result.append(
             TenantResponse(
                 tenant_id=tid,

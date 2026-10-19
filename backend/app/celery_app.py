@@ -1,7 +1,9 @@
 """Celery application instance configured for RabbitMQ broker and Redis result backend."""
 
 import os
+
 from celery import Celery
+
 from app.config import get_settings
 
 settings = get_settings()

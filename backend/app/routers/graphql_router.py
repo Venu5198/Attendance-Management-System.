@@ -1,14 +1,10 @@
 """Strawberry GraphQL API schema, types, queries, and mutations."""
 
-from datetime import datetime
-from typing import Optional
 import strawberry
 from strawberry.fastapi import GraphQLRouter
 
-from app.database import db_manager, get_database
+from app.database import get_database
 from app.services.attendance_service import AttendanceService
-from app.services.employee_service import EmployeeService
-from app.services.report_service import ReportService
 
 
 # -------------------------------------------------------------------
@@ -31,8 +27,8 @@ class AttendanceType:
     attendance_id: str
     employee_id: str
     work_date: str
-    entry_time: Optional[str] = None
-    exit_time: Optional[str] = None
+    entry_time: str | None = None
+    exit_time: str | None = None
     duration_seconds: int = 0
     duration_hours: float = 0.0
     attendance_status: str
@@ -58,9 +54,7 @@ class Query:
     async def employees(self, limit: int = 50, tenant_id: str = "default") -> list[EmployeeType]:
         """Fetch list of employees with custom field selection within tenant."""
         db = await get_database()
-        cursor = db.employees.find(
-            {"$or": [{"tenant_id": tenant_id}, {"tenant_id": {"$exists": False}}]}
-        ).limit(limit)
+        cursor = db.employees.find({"$or": [{"tenant_id": tenant_id}, {"tenant_id": {"$exists": False}}]}).limit(limit)
         results = []
         async for doc in cursor:
             results.append(
@@ -78,7 +72,7 @@ class Query:
         return results
 
     @strawberry.field
-    async def employee(self, employee_id: str, tenant_id: str = "default") -> Optional[EmployeeType]:
+    async def employee(self, employee_id: str, tenant_id: str = "default") -> EmployeeType | None:
         """Fetch single employee by ID within tenant."""
         db = await get_database()
         doc = await db.employees.find_one(
@@ -98,7 +92,7 @@ class Query:
         )
 
     @strawberry.field
-    async def today_status(self, employee_id: str, tenant_id: str = "default") -> Optional[AttendanceType]:
+    async def today_status(self, employee_id: str, tenant_id: str = "default") -> AttendanceType | None:
         """Fetch today's attendance status for an employee within tenant."""
         db = await get_database()
         service = AttendanceService(db, tenant_id=tenant_id)
@@ -111,7 +105,9 @@ class Query:
             exit_time=res.exit_time.isoformat() if res.exit_time else None,
             duration_seconds=res.duration_seconds,
             duration_hours=res.duration_hours,
-            attendance_status=res.attendance_status.value if hasattr(res.attendance_status, "value") else str(res.attendance_status),
+            attendance_status=res.attendance_status.value
+            if hasattr(res.attendance_status, "value")
+            else str(res.attendance_status),
         )
 
 
@@ -135,7 +131,9 @@ class Mutation:
             exit_time=att.exit_time.isoformat() if att.exit_time else None,
             duration_seconds=att.duration_seconds,
             duration_hours=att.duration_hours,
-            attendance_status=att.attendance_status.value if hasattr(att.attendance_status, "value") else str(att.attendance_status),
+            attendance_status=att.attendance_status.value
+            if hasattr(att.attendance_status, "value")
+            else str(att.attendance_status),
         )
 
     @strawberry.mutation
@@ -153,9 +151,10 @@ class Mutation:
             exit_time=att.exit_time.isoformat() if att.exit_time else None,
             duration_seconds=att.duration_seconds,
             duration_hours=att.duration_hours,
-            attendance_status=att.attendance_status.value if hasattr(att.attendance_status, "value") else str(att.attendance_status),
+            attendance_status=att.attendance_status.value
+            if hasattr(att.attendance_status, "value")
+            else str(att.attendance_status),
         )
-
 
 
 schema = strawberry.Schema(query=Query, mutation=Mutation)

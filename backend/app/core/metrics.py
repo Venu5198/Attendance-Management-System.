@@ -1,6 +1,6 @@
 """Prometheus custom application and business metrics."""
 
-from prometheus_client import Counter, Gauge, Histogram
+from prometheus_client import Counter, Gauge
 
 # Business Metrics
 ATTENDANCE_CHECKIN_TOTAL = Counter(

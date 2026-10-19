@@ -1,6 +1,5 @@
 """WebSocket real-time broadcast router for alerts and task notifications."""
 
-import asyncio
 import json
 import logging
 from typing import Any
@@ -24,7 +23,9 @@ class ConnectionManager:
         if tenant_id not in self.active_connections:
             self.active_connections[tenant_id] = []
         self.active_connections[tenant_id].append(websocket)
-        logger.info("WebSocket connected for tenant '%s'. Total: %d", tenant_id, len(self.active_connections[tenant_id]))
+        logger.info(
+            "WebSocket connected for tenant '%s'. Total: %d", tenant_id, len(self.active_connections[tenant_id])
+        )
 
     def disconnect(self, websocket: WebSocket, tenant_id: str):
         if tenant_id in self.active_connections:
@@ -64,10 +65,12 @@ async def websocket_notifications(websocket: WebSocket, tenant_id: str):
     await ws_manager.connect(websocket, tenant_id)
     try:
         # Send initial connection handshake
-        await websocket.send_json({
-            "type": "SYSTEM_CONNECTED",
-            "message": f"Connected to Real-Time Notification Stream for tenant '{tenant_id}'",
-        })
+        await websocket.send_json(
+            {
+                "type": "SYSTEM_CONNECTED",
+                "message": f"Connected to Real-Time Notification Stream for tenant '{tenant_id}'",
+            }
+        )
         while True:
             # Keepalive ping/pong
             data = await websocket.receive_text()

@@ -1,7 +1,7 @@
 """Celery background tasks for heavy analytics and attendance reporting."""
 
 import logging
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import Any
 
 from app.celery_app import celery_app
@@ -41,5 +41,5 @@ def generate_attendance_export_task(
         "requested_by": requested_by,
         "total_attendance_records": total_records,
         "total_office_hours_accumulated": round(total_hours, 2),
-        "generated_at": datetime.now(timezone.utc).isoformat(),
+        "generated_at": datetime.now(UTC).isoformat(),
     }

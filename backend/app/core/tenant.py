@@ -2,7 +2,8 @@
 
 import logging
 from typing import Annotated
-from fastapi import Header, HTTPException, Request, status
+
+from fastapi import Header, Request
 from pydantic import BaseModel, Field
 
 logger = logging.getLogger(__name__)
@@ -12,6 +13,7 @@ DEFAULT_TENANT_ID = "default"
 
 class TenantContext(BaseModel):
     """Execution context for the active tenant."""
+
     tenant_id: str = Field(default=DEFAULT_TENANT_ID, description="Unique tenant slug or organization ID")
     tenant_name: str | None = None
     is_active: bool = True

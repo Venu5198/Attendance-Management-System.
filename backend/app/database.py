@@ -1,7 +1,7 @@
 import asyncio
 import logging
 
-from pymongo import ASCENDING, DESCENDING, AsyncMongoClient
+from pymongo import ASCENDING, AsyncMongoClient
 from pymongo.asynchronous.database import AsyncDatabase
 from pymongo.uri_parser import parse_uri
 
@@ -207,7 +207,6 @@ async def ensure_indexes(db: AsyncDatabase) -> None:
     )
 
     logger.info("Multi-tenant MongoDB indexes successfully created.")
-
 
 
 # Collection getters

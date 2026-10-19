@@ -175,7 +175,9 @@ class AuthService:
                     status_code=status.HTTP_404_NOT_FOUND,
                     detail=f"Employee '{user_in.employee_id}' does not exist in this organization",
                 )
-            existing_emp_user = await self.users.find_one({"tenant_id": effective_tenant, "employee_id": user_in.employee_id})
+            existing_emp_user = await self.users.find_one(
+                {"tenant_id": effective_tenant, "employee_id": user_in.employee_id}
+            )
             if existing_emp_user:
                 raise HTTPException(
                     status_code=status.HTTP_400_BAD_REQUEST,
@@ -207,7 +209,6 @@ class AuthService:
             is_active=user_doc["is_active"],
             created_at=user_doc["created_at"],
         )
-
 
     async def get_user_by_id(self, user_id: str) -> dict | None:
         """Fetch user by user_id."""

@@ -1,7 +1,7 @@
 """SOC2 & Compliance Audit Trail Logging and Query Router."""
 
-from datetime import datetime
 import logging
+from datetime import datetime
 from typing import Annotated, Any
 
 from fastapi import APIRouter, Depends, Query

@@ -80,7 +80,7 @@ async def get_task_status(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Error inspecting task {task_id}: {str(exc)}",
-        )
+        ) from exc
 
 
 @router.delete(
@@ -103,4 +103,4 @@ async def cancel_task(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Failed to revoke task {task_id}: {str(exc)}",
-        )
+        ) from exc

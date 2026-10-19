@@ -15,6 +15,7 @@ from app.middleware.security import SecurityHeadersMiddleware
 from app.routers import (
     assistant,
     attendance,
+    audit_router,
     auth,
     employees,
     health,
@@ -22,10 +23,9 @@ from app.routers import (
     leaves,
     reports,
     tasks_router,
+    tenants_router,
     violations,
     webhooks,
-    tenants_router,
-    audit_router,
     websocket_router,
 )
 from app.routers.graphql_router import graphql_app
@@ -154,6 +154,7 @@ def create_application() -> FastAPI:
 
     # 3. Prometheus Metrics Instrumentation & /metrics exposition
     from prometheus_fastapi_instrumentator import Instrumentator
+
     Instrumentator(
         should_group_status_codes=False,
         should_ignore_untemplated=True,

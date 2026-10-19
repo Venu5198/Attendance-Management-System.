@@ -9,7 +9,6 @@ from pymongo.asynchronous.database import AsyncDatabase
 
 from app.config import get_settings
 from app.core.redis_client import is_token_blacklisted
-from app.core.tenant import get_tenant_id
 from app.database import get_database
 from app.middleware.security import is_ip_allowed
 from app.schemas.auth import TokenPayload
@@ -139,4 +138,3 @@ async def require_kiosk_api_key(
             )
 
     return x_kiosk_api_key
-

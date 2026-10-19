@@ -195,7 +195,10 @@ class AttendanceService:
                     detail=f"Cannot check out: No check-in record found for employee '{employee_id}' on workday {work_date}",
                 )
 
-            if record.get("attendance_status") == AttendanceStatus.COMPLETED.value and record.get("exit_time") is not None:
+            if (
+                record.get("attendance_status") == AttendanceStatus.COMPLETED.value
+                and record.get("exit_time") is not None
+            ):
                 raise HTTPException(
                     status_code=status.HTTP_400_BAD_REQUEST,
                     detail=f"Employee '{employee_id}' has already checked out for workday {work_date}",
@@ -288,7 +291,6 @@ class AttendanceService:
         async for doc in cursor:
             results.append(self._format_attendance_doc(doc))
         return results
-
 
     def _format_attendance_doc(self, doc: dict) -> AttendanceRecordResponse:
         duration_sec = doc.get("duration_seconds", 0)

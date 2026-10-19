@@ -1,14 +1,15 @@
 """Redis async client management, distributed locking, caching, and token blacklisting."""
 
 import asyncio
-from contextlib import asynccontextmanager
 import json
 import logging
 import time
-from typing import Any, AsyncGenerator
+from collections.abc import AsyncGenerator
+from contextlib import asynccontextmanager
+from typing import Any
 
 import redis.asyncio as aioredis
-from redis.exceptions import ConnectionError, RedisError
+from redis.exceptions import RedisError
 
 from app.config import get_settings
 
@@ -123,7 +124,7 @@ async def redis_distributed_lock(
             await asyncio.wait_for(lock.acquire(), timeout=acquire_timeout)
             acquired = True
             yield acquired
-        except asyncio.TimeoutError:
+        except TimeoutError:
             yield False
         finally:
             if acquired and lock.locked():

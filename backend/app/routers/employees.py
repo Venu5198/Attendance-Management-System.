@@ -70,6 +70,7 @@ async def bulk_import_employees_async(
     can_process, existing = await acquire_deduplication(fingerprint, ttl_seconds=120)
     if not can_process:
         from app.core.metrics import REQUEST_DEDUPLICATIONS_TOTAL
+
         REQUEST_DEDUPLICATIONS_TOTAL.labels(tenant_id=tenant_id, endpoint="/employees/bulk-import-async").inc()
         if existing and existing.get("status") == "IN_PROGRESS":
             raise HTTPException(
@@ -99,6 +100,7 @@ async def bulk_import_employees_async(
         )
 
         from app.core.metrics import CELERY_TASKS_DISPATCHED_TOTAL
+
         CELERY_TASKS_DISPATCHED_TOTAL.labels(task_name="process_employee_excel_import", tenant_id=tenant_id).inc()
 
         response_payload = {
@@ -128,7 +130,7 @@ async def bulk_import_employees_async(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Failed to enqueue task to RabbitMQ: {str(exc)}",
-        )
+        ) from exc
 
 
 @router.post(
@@ -212,5 +214,3 @@ async def deactivate_employee(
     tenant_id = current_admin.get("tenant_id", "default")
     service = EmployeeService(db, tenant_id=tenant_id)
     return await service.deactivate_employee(employee_id)
-
-

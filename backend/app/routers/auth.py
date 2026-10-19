@@ -61,7 +61,6 @@ async def register_user(
     return await service.create_user(user_in)
 
 
-
 @router.get(
     "/me",
     response_model=UserResponse,
@@ -94,4 +93,3 @@ async def logout(
     if credentials:
         await blacklist_token(credentials.credentials)
     return {"success": True, "message": "Logged out successfully. Token revoked."}
-

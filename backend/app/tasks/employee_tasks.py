@@ -4,7 +4,7 @@ import base64
 import csv
 import io
 import logging
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import Any
 
 import openpyxl
@@ -22,6 +22,7 @@ def _get_sync_db():
     """Create synchronous MongoDB connection for Celery task worker."""
     settings = get_settings()
     from app.database import db_manager
+
     if db_manager.db is not None:
         db_name = db_manager.db.name
     else:
@@ -82,7 +83,7 @@ def process_employee_excel_import(
                 if not any(row_values):
                     continue
                 row_dict = {}
-                for h, val in zip(raw_headers, row_values):
+                for h, val in zip(raw_headers, row_values, strict=False):
                     if h:
                         row_dict[h] = str(val).strip() if val is not None else ""
                 row_dict["_row_number"] = row_idx
@@ -149,11 +150,13 @@ def process_employee_excel_import(
 
         # Basic validations
         if not emp_id or not full_name or not email:
-            failed_rows.append({
-                "row": row_num,
-                "employee_id": emp_id or "MISSING",
-                "error": "Missing required fields (employee_id, full_name, or email)",
-            })
+            failed_rows.append(
+                {
+                    "row": row_num,
+                    "employee_id": emp_id or "MISSING",
+                    "error": "Missing required fields (employee_id, full_name, or email)",
+                }
+            )
             continue
 
         emp_id = str(emp_id).strip()
@@ -162,7 +165,7 @@ def process_employee_excel_import(
         role = role.upper() if role.upper() in ["ADMIN", "EMPLOYEE"] else "EMPLOYEE"
 
         try:
-            now_iso = datetime.now(timezone.utc).isoformat()
+            now_iso = datetime.now(UTC).isoformat()
             emp_doc = {
                 "tenant_id": tenant_id,
                 "employee_id": emp_id,
@@ -191,33 +194,39 @@ def process_employee_excel_import(
                 updated_count += 1
 
             # Ensure corresponding user account exists
-            user_exists = db["users"].find_one({
-                "$or": [
-                    {"tenant_id": tenant_id, "username": emp_id},
-                    {"tenant_id": tenant_id, "email": email},
-                ]
-            })
+            user_exists = db["users"].find_one(
+                {
+                    "$or": [
+                        {"tenant_id": tenant_id, "username": emp_id},
+                        {"tenant_id": tenant_id, "email": email},
+                    ]
+                }
+            )
             if not user_exists:
                 default_hashed_pwd = get_password_hash("EmpPass123!")
-                db["users"].insert_one({
-                    "tenant_id": tenant_id,
-                    "username": emp_id,
-                    "email": email,
-                    "hashed_password": default_hashed_pwd,
-                    "role": role,
-                    "employee_id": emp_id,
-                    "is_active": True,
-                    "created_at": now_iso,
-                    "updated_at": now_iso,
-                })
+                db["users"].insert_one(
+                    {
+                        "tenant_id": tenant_id,
+                        "username": emp_id,
+                        "email": email,
+                        "hashed_password": default_hashed_pwd,
+                        "role": role,
+                        "employee_id": emp_id,
+                        "is_active": True,
+                        "created_at": now_iso,
+                        "updated_at": now_iso,
+                    }
+                )
 
         except Exception as exc:
             logger.warning("Failed to insert row %d (%s): %s", row_num, emp_id, exc)
-            failed_rows.append({
-                "row": row_num,
-                "employee_id": emp_id,
-                "error": str(exc),
-            })
+            failed_rows.append(
+                {
+                    "row": row_num,
+                    "employee_id": emp_id,
+                    "error": str(exc),
+                }
+            )
 
         # Update progress every 5 rows or on final row
         if idx % 5 == 0 or idx == total_rows:
@@ -243,7 +252,7 @@ def process_employee_excel_import(
         "updated_count": updated_count,
         "failed_count": len(failed_rows),
         "failed_rows": failed_rows,
-        "completed_at": datetime.now(timezone.utc).isoformat(),
+        "completed_at": datetime.now(UTC).isoformat(),
     }
     logger.info("Celery bulk import task [%s] finished: %s", self.request.id, result_summary)
     return result_summary
