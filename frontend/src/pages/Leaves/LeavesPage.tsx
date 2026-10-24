@@ -1,8 +1,10 @@
 import React, { useEffect, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { useAuth } from '../../auth/AuthContext';
 import { leavesApi } from '../../api';
 import { holidaysApi } from '../../api/holidays';
 import type { Holiday, LeaveRequest, LeaveStatus, LeaveType } from '../../types';
+import { RegularizationReviewPanel } from '../../components/Attendance/RegularizationReviewPanel';
 import {
   CalendarDays,
   Plus,
@@ -14,11 +16,17 @@ import {
   Briefcase,
   Sparkles,
   Trash2,
+  Sliders,
 } from 'lucide-react';
 
 export const LeavesPage: React.FC = () => {
   const { user } = useAuth();
-  const [activeTab, setActiveTab] = useState<'leaves' | 'holidays'>('leaves');
+  const [searchParams, setSearchParams] = useSearchParams();
+  const initialTab = searchParams.get('tab');
+  const [activeTab, setActiveTab] = useState<'leaves' | 'holidays' | 'adjustments'>(
+    initialTab === 'adjustments' ? 'adjustments' : initialTab === 'holidays' ? 'holidays' : 'leaves'
+  );
+
   const [leaves, setLeaves] = useState<LeaveRequest[]>([]);
   const [holidays, setHolidays] = useState<Holiday[]>([]);
   const [statusFilter, setStatusFilter] = useState<LeaveStatus | 'ALL'>('ALL');
@@ -33,7 +41,7 @@ export const LeavesPage: React.FC = () => {
   const [holidayDesc, setHolidayDesc] = useState('');
   const [holidaySubmitting, setHolidaySubmitting] = useState(false);
 
-  // Modal State
+  // Leave Modal State
   const [modalOpen, setModalOpen] = useState(false);
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
@@ -47,12 +55,16 @@ export const LeavesPage: React.FC = () => {
   const isAdmin = user?.role === 'ADMIN';
   const empId = user?.employee_id || 'EMP001';
 
+  const handleTabChange = (tab: 'leaves' | 'holidays' | 'adjustments') => {
+    setActiveTab(tab);
+    setSearchParams({ tab });
+  };
+
   const fetchLeaves = async () => {
     try {
       setLoading(true);
       setSelectedLeaveIds([]);
       const filter = statusFilter === 'ALL' ? undefined : statusFilter;
-      // If employee, backend filters by their token unless admin
       const data = await leavesApi.getLeaves(isAdmin ? undefined : empId, filter);
       setLeaves(data);
     } catch {
@@ -74,7 +86,7 @@ export const LeavesPage: React.FC = () => {
   useEffect(() => {
     if (activeTab === 'leaves') {
       fetchLeaves();
-    } else {
+    } else if (activeTab === 'holidays') {
       fetchHolidays();
     }
   }, [statusFilter, user, activeTab]);
@@ -89,7 +101,8 @@ export const LeavesPage: React.FC = () => {
         name: holidayName,
         description: holidayDesc || undefined,
       });
-      setMsg({ type: 'success', text: `Holiday '${holidayName}' successfully configured!` });
+
+      setMsg({ type: 'success', text: `Holiday '${holidayName}' configured successfully!` });
       setHolidayModalOpen(false);
       setHolidayDate('');
       setHolidayName('');
@@ -101,7 +114,7 @@ export const LeavesPage: React.FC = () => {
         respData?.message ||
         respData?.detail ||
         (err as Error)?.message ||
-        'Failed to configure holiday.';
+        'Failed to configure company holiday.';
       setMsg({ type: 'error', text: errorMsg });
     } finally {
       setHolidaySubmitting(false);
@@ -109,45 +122,20 @@ export const LeavesPage: React.FC = () => {
   };
 
   const handleDeleteHoliday = async (holidayId: string, name: string) => {
-    if (!confirm(`Are you sure you want to delete the holiday '${name}'?`)) return;
+    if (!window.confirm(`Delete company holiday "${name}"?`)) return;
     try {
       setMsg(null);
       await holidaysApi.deleteHoliday(holidayId);
       setMsg({ type: 'success', text: `Holiday '${name}' deleted successfully.` });
       await fetchHolidays();
     } catch (err: unknown) {
+      const respData = (err as { response?: { data?: { message?: string; detail?: string } } })?.response?.data;
       const errorMsg =
-        (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail ||
-        'Failed to delete holiday.';
+        respData?.message ||
+        respData?.detail ||
+        (err as Error)?.message ||
+        'Failed to delete company holiday.';
       setMsg({ type: 'error', text: errorMsg });
-    }
-  };
-
-  const handleBulkReview = async (action: 'APPROVED' | 'REJECTED') => {
-    if (selectedLeaveIds.length === 0) return;
-    try {
-      setBulkLoading(true);
-      setMsg(null);
-      const res = await leavesApi.bulkReviewLeaves({
-        leave_ids: selectedLeaveIds,
-        action,
-        admin_notes: `Batch ${action.toLowerCase()} by HR Administrator`,
-      });
-      setMsg({
-        type: 'success',
-        text: `Batch action completed: ${res.success_count} leave(s) updated${
-          res.failed_count > 0 ? `, ${res.failed_count} failed` : ''
-        }.`,
-      });
-      setSelectedLeaveIds([]);
-      await fetchLeaves();
-    } catch (err: unknown) {
-      const errorMsg =
-        (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail ||
-        'Batch action failed.';
-      setMsg({ type: 'error', text: errorMsg });
-    } finally {
-      setBulkLoading(false);
     }
   };
 
@@ -209,12 +197,47 @@ export const LeavesPage: React.FC = () => {
       });
       await fetchLeaves();
     } catch (err: unknown) {
+      const respData = (err as { response?: { data?: { message?: string; detail?: string } } })?.response?.data;
       const errorMsg =
-        (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail ||
-        `Failed to ${action.toLowerCase()} leave.`;
+        respData?.message ||
+        respData?.detail ||
+        (err as Error)?.message ||
+        `Failed to ${action.toLowerCase()} request.`;
       setMsg({ type: 'error', text: errorMsg });
     } finally {
       setProcessingId(null);
+    }
+  };
+
+  const handleBulkReview = async (action: 'APPROVED' | 'REJECTED') => {
+    if (selectedLeaveIds.length === 0) return;
+    try {
+      setBulkLoading(true);
+      setMsg(null);
+      const res = await leavesApi.bulkReviewLeaves({
+        leave_ids: selectedLeaveIds,
+        action,
+        admin_notes: `Bulk ${action.toLowerCase()} by administrator`,
+      });
+
+      setMsg({
+        type: 'success',
+        text: `Bulk review completed: ${res.success_count} approved/rejected successfully${
+          res.failed_count > 0 ? `, ${res.failed_count} failed` : ''
+        }.`,
+      });
+      setSelectedLeaveIds([]);
+      await fetchLeaves();
+    } catch (err: unknown) {
+      const respData = (err as { response?: { data?: { message?: string; detail?: string } } })?.response?.data;
+      const errorMsg =
+        respData?.message ||
+        respData?.detail ||
+        (err as Error)?.message ||
+        'Bulk review operation failed.';
+      setMsg({ type: 'error', text: errorMsg });
+    } finally {
+      setBulkLoading(false);
     }
   };
 
@@ -230,7 +253,7 @@ export const LeavesPage: React.FC = () => {
       case 'REJECTED':
         return (
           <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-rose-50 text-rose-700 border border-rose-200">
-            <X className="w-3 h-3" />
+            <AlertCircle className="w-3 h-3" />
             Rejected
           </span>
         );
@@ -264,7 +287,7 @@ export const LeavesPage: React.FC = () => {
         <div>
           <h1 className="text-2xl font-bold text-slate-900">Leaves & Policy Exemptions</h1>
           <p className="text-sm text-slate-500">
-            Submit time-off requests to exempt dates from the 3-day / 15-hour in-office policy
+            Manage time-off, holidays, and attendance ledger balance adjustments
           </p>
         </div>
 
@@ -276,7 +299,7 @@ export const LeavesPage: React.FC = () => {
             <Plus className="w-4 h-4" />
             Request Leave
           </button>
-        ) : isAdmin ? (
+        ) : activeTab === 'holidays' && isAdmin ? (
           <button
             onClick={() => setHolidayModalOpen(true)}
             className="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white text-sm font-semibold rounded-xl shadow-sm flex items-center gap-2 transition"
@@ -288,9 +311,9 @@ export const LeavesPage: React.FC = () => {
       </div>
 
       {/* Tab Switcher */}
-      <div className="flex gap-2 border-b border-slate-200 pb-2">
+      <div className="flex flex-wrap gap-2 border-b border-slate-200 pb-2">
         <button
-          onClick={() => setActiveTab('leaves')}
+          onClick={() => handleTabChange('leaves')}
           className={`px-4 py-2 text-sm font-bold rounded-xl transition flex items-center gap-2 ${
             activeTab === 'leaves'
               ? 'bg-blue-600 text-white shadow-xs'
@@ -301,7 +324,7 @@ export const LeavesPage: React.FC = () => {
           Leave Applications
         </button>
         <button
-          onClick={() => setActiveTab('holidays')}
+          onClick={() => handleTabChange('holidays')}
           className={`px-4 py-2 text-sm font-bold rounded-xl transition flex items-center gap-2 ${
             activeTab === 'holidays'
               ? 'bg-purple-600 text-white shadow-xs'
@@ -311,17 +334,28 @@ export const LeavesPage: React.FC = () => {
           <Sparkles className="w-4 h-4" />
           Company Holidays Calendar
         </button>
+        <button
+          onClick={() => handleTabChange('adjustments')}
+          className={`px-4 py-2 text-sm font-bold rounded-xl transition flex items-center gap-2 ${
+            activeTab === 'adjustments'
+              ? 'bg-indigo-600 text-white shadow-xs'
+              : 'text-slate-600 hover:bg-slate-100'
+          }`}
+        >
+          <Sliders className="w-4 h-4" />
+          Adjustments & Corrections
+        </button>
       </div>
 
       {msg && (
         <div
-          className={`p-4 rounded-xl text-sm font-medium flex items-center gap-2 ${
+          className={`p-4 rounded-xl text-sm font-semibold flex items-center gap-2 ${
             msg.type === 'success'
               ? 'bg-emerald-50 text-emerald-800 border border-emerald-200'
               : 'bg-rose-50 text-rose-800 border border-rose-200'
           }`}
         >
-          {msg.type === 'success' ? <CheckCircle2 className="w-4 h-4 shrink-0" /> : <AlertCircle className="w-4 h-4 shrink-0" />}
+          {msg.type === 'success' ? <CheckCircle2 className="w-4 h-4" /> : <AlertCircle className="w-4 h-4" />}
           {msg.text}
         </div>
       )}
@@ -329,180 +363,180 @@ export const LeavesPage: React.FC = () => {
       {/* Main Container */}
       {activeTab === 'leaves' ? (
         <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 space-y-4">
-        {/* Filter bar */}
-        <div className="flex justify-between items-center border-b border-slate-100 pb-4">
-          <div className="flex items-center gap-2">
-            <CalendarDays className="w-5 h-5 text-blue-600" />
-            <h2 className="text-base font-bold text-slate-800">
-              {isAdmin ? 'All Employee Leave Requests' : 'My Leave Applications'}
-            </h2>
-          </div>
-
-          <div className="flex items-center bg-slate-100 p-1 rounded-xl border border-slate-200 text-xs font-semibold">
-            {(['ALL', 'PENDING', 'APPROVED', 'REJECTED'] as const).map((st) => (
-              <button
-                key={st}
-                onClick={() => setStatusFilter(st)}
-                className={`px-3 py-1.5 rounded-lg transition ${
-                  statusFilter === st
-                    ? 'bg-white text-blue-600 shadow-xs'
-                    : 'text-slate-600 hover:text-slate-900'
-                }`}
-              >
-                {st}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        {/* Bulk Action Banner for Admin */}
-        {isAdmin && selectedLeaveIds.length > 0 && (
-          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 bg-blue-50/90 border border-blue-200 p-3.5 rounded-xl">
+          {/* Filter bar */}
+          <div className="flex justify-between items-center border-b border-slate-100 pb-4">
             <div className="flex items-center gap-2">
-              <CheckCircle2 className="w-4 h-4 text-blue-600" />
-              <span className="text-xs font-bold text-blue-900">
-                {selectedLeaveIds.length} leave application{selectedLeaveIds.length > 1 ? 's' : ''} selected
-              </span>
+              <CalendarDays className="w-5 h-5 text-blue-600" />
+              <h2 className="text-base font-bold text-slate-800">
+                {isAdmin ? 'All Employee Leave Requests' : 'My Leave Applications'}
+              </h2>
             </div>
+
             <div className="flex items-center gap-2">
-              <button
-                onClick={() => handleBulkReview('APPROVED')}
-                disabled={bulkLoading}
-                className="px-3 py-1.5 text-xs font-semibold bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg transition flex items-center gap-1.5 shadow-2xs disabled:opacity-50"
-              >
-                <Check className="w-3.5 h-3.5" />
-                Batch Approve ({selectedLeaveIds.length})
-              </button>
-              <button
-                onClick={() => handleBulkReview('REJECTED')}
-                disabled={bulkLoading}
-                className="px-3 py-1.5 text-xs font-semibold bg-rose-600 hover:bg-rose-700 text-white rounded-lg transition flex items-center gap-1.5 shadow-2xs disabled:opacity-50"
-              >
-                <X className="w-3.5 h-3.5" />
-                Batch Reject ({selectedLeaveIds.length})
-              </button>
-              <button
-                onClick={() => setSelectedLeaveIds([])}
-                className="px-2 py-1.5 text-xs text-slate-500 hover:text-slate-800"
-              >
-                Clear
-              </button>
+              {(['ALL', 'PENDING', 'APPROVED', 'REJECTED'] as const).map((st) => (
+                <button
+                  key={st}
+                  onClick={() => setStatusFilter(st)}
+                  className={`px-2.5 py-1 text-xs font-semibold rounded-lg transition ${
+                    statusFilter === st
+                      ? 'bg-slate-900 text-white'
+                      : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                  }`}
+                >
+                  {st}
+                </button>
+              ))}
             </div>
           </div>
-        )}
 
-        {/* Leaves Table */}
-        <div className="border border-slate-200 rounded-xl overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm text-left text-slate-600">
-              <thead className="text-xs uppercase bg-slate-50 text-slate-500 border-b border-slate-200">
-                <tr>
-                  {isAdmin && (
-                    <th className="px-4 py-3 w-10">
-                      <input
-                        type="checkbox"
-                        aria-label="Select all pending leaves"
-                        checked={
-                          leaves.filter((l) => l.status === 'PENDING').length > 0 &&
-                          selectedLeaveIds.length === leaves.filter((l) => l.status === 'PENDING').length
-                        }
-                        onChange={toggleSelectAll}
-                        className="w-4 h-4 rounded text-blue-600 focus:ring-blue-500 border-slate-300 cursor-pointer"
-                      />
-                    </th>
-                  )}
-                  {isAdmin && <th className="px-5 py-3 font-semibold">Employee</th>}
-                  <th className="px-5 py-3 font-semibold">Duration</th>
-                  <th className="px-5 py-3 font-semibold">Category</th>
-                  <th className="px-5 py-3 font-semibold">Reason</th>
-                  <th className="px-5 py-3 font-semibold">Status</th>
-                  {isAdmin && <th className="px-5 py-3 font-semibold text-right">Actions</th>}
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100">
-                {loading ? (
+          {/* Bulk Action Banner for Admin */}
+          {isAdmin && selectedLeaveIds.length > 0 && (
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 bg-blue-50/90 border border-blue-200 p-3.5 rounded-xl">
+              <div className="flex items-center gap-2">
+                <CheckCircle2 className="w-4 h-4 text-blue-600" />
+                <span className="text-xs font-bold text-blue-900">
+                  {selectedLeaveIds.length} leave application{selectedLeaveIds.length > 1 ? 's' : ''} selected
+                </span>
+              </div>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => handleBulkReview('APPROVED')}
+                  disabled={bulkLoading}
+                  className="px-3 py-1.5 text-xs font-semibold bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg transition flex items-center gap-1.5 shadow-2xs disabled:opacity-50"
+                >
+                  <Check className="w-3.5 h-3.5" />
+                  Batch Approve ({selectedLeaveIds.length})
+                </button>
+                <button
+                  onClick={() => handleBulkReview('REJECTED')}
+                  disabled={bulkLoading}
+                  className="px-3 py-1.5 text-xs font-semibold bg-rose-600 hover:bg-rose-700 text-white rounded-lg transition flex items-center gap-1.5 shadow-2xs disabled:opacity-50"
+                >
+                  <X className="w-3.5 h-3.5" />
+                  Batch Reject ({selectedLeaveIds.length})
+                </button>
+                <button
+                  onClick={() => setSelectedLeaveIds([])}
+                  className="px-2 py-1.5 text-xs text-slate-500 hover:text-slate-800"
+                >
+                  Clear
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* Leaves Table */}
+          <div className="border border-slate-200 rounded-xl overflow-hidden">
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm text-left text-slate-600">
+                <thead className="text-xs uppercase bg-slate-50 text-slate-500 border-b border-slate-200">
                   <tr>
-                    <td colSpan={isAdmin ? 7 : 5} className="text-center py-8 text-slate-400">
-                      Loading leave requests...
-                    </td>
+                    {isAdmin && (
+                      <th className="px-4 py-3 w-10">
+                        <input
+                          type="checkbox"
+                          aria-label="Select all pending leaves"
+                          checked={
+                            leaves.filter((l) => l.status === 'PENDING').length > 0 &&
+                            selectedLeaveIds.length === leaves.filter((l) => l.status === 'PENDING').length
+                          }
+                          onChange={toggleSelectAll}
+                          className="w-4 h-4 rounded text-blue-600 focus:ring-blue-500 border-slate-300 cursor-pointer"
+                        />
+                      </th>
+                    )}
+                    {isAdmin && <th className="px-5 py-3 font-semibold">Employee</th>}
+                    <th className="px-5 py-3 font-semibold">Duration</th>
+                    <th className="px-5 py-3 font-semibold">Category</th>
+                    <th className="px-5 py-3 font-semibold">Reason</th>
+                    <th className="px-5 py-3 font-semibold">Status</th>
+                    {isAdmin && <th className="px-5 py-3 font-semibold text-right">Actions</th>}
                   </tr>
-                ) : leaves.length === 0 ? (
-                  <tr>
-                    <td colSpan={isAdmin ? 7 : 5} className="text-center py-8 text-slate-400">
-                      No leave requests found.
-                    </td>
-                  </tr>
-                ) : (
-                  leaves.map((leave) => (
-                    <tr key={leave.leave_id} className="hover:bg-slate-50/60 transition">
-                      {isAdmin && (
-                        <td className="px-4 py-3.5">
-                          {leave.status === 'PENDING' ? (
-                            <input
-                              type="checkbox"
-                              checked={selectedLeaveIds.includes(leave.leave_id)}
-                              onChange={() => toggleSelectOne(leave.leave_id)}
-                              className="w-4 h-4 rounded text-blue-600 focus:ring-blue-500 border-slate-300 cursor-pointer"
-                            />
-                          ) : null}
-                        </td>
-                      )}
-                      {isAdmin && (
-                        <td className="px-5 py-3.5 font-semibold text-slate-900">
-                          {leave.employee_id}
-                        </td>
-                      )}
-                      <td className="px-5 py-3.5 font-medium text-slate-800">
-                        {leave.start_date} <span className="text-slate-400">to</span> {leave.end_date}
+                </thead>
+                <tbody className="divide-y divide-slate-100">
+                  {loading ? (
+                    <tr>
+                      <td colSpan={isAdmin ? 7 : 5} className="text-center py-8 text-slate-400">
+                        Loading leave requests...
                       </td>
-                      <td className="px-5 py-3.5">
-                        <span
-                          className={`inline-block px-2.5 py-0.5 rounded-md text-xs font-semibold border ${getTypeBadge(
-                            leave.leave_type
-                          )}`}
-                        >
-                          {leave.leave_type.replace('_', ' ')}
-                        </span>
-                      </td>
-                      <td className="px-5 py-3.5 text-xs text-slate-600 max-w-xs truncate" title={leave.reason}>
-                        {leave.reason}
-                      </td>
-                      <td className="px-5 py-3.5">{getStatusBadge(leave.status)}</td>
-                      {isAdmin && (
-                        <td className="px-5 py-3.5 text-right">
-                          {leave.status === 'PENDING' ? (
-                            <div className="flex items-center justify-end gap-2">
-                              <button
-                                onClick={() => handleReview(leave.leave_id, 'APPROVED')}
-                                disabled={processingId === leave.leave_id}
-                                className="px-2.5 py-1 text-xs font-semibold bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg transition flex items-center gap-1 shadow-2xs disabled:opacity-50"
-                              >
-                                <Check className="w-3.5 h-3.5" />
-                                Approve
-                              </button>
-                              <button
-                                onClick={() => handleReview(leave.leave_id, 'REJECTED')}
-                                disabled={processingId === leave.leave_id}
-                                className="px-2.5 py-1 text-xs font-semibold bg-rose-600 hover:bg-rose-700 text-white rounded-lg transition flex items-center gap-1 shadow-2xs disabled:opacity-50"
-                              >
-                                <X className="w-3.5 h-3.5" />
-                                Reject
-                              </button>
-                            </div>
-                          ) : (
-                            <span className="text-xs text-slate-400 italic">Resolved</span>
-                          )}
-                        </td>
-                      )}
                     </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
+                  ) : leaves.length === 0 ? (
+                    <tr>
+                      <td colSpan={isAdmin ? 7 : 5} className="text-center py-8 text-slate-400">
+                        No leave requests found.
+                      </td>
+                    </tr>
+                  ) : (
+                    leaves.map((leave) => (
+                      <tr key={leave.leave_id} className="hover:bg-slate-50/60 transition">
+                        {isAdmin && (
+                          <td className="px-4 py-3.5">
+                            {leave.status === 'PENDING' ? (
+                              <input
+                                type="checkbox"
+                                checked={selectedLeaveIds.includes(leave.leave_id)}
+                                onChange={() => toggleSelectOne(leave.leave_id)}
+                                className="w-4 h-4 rounded text-blue-600 focus:ring-blue-500 border-slate-300 cursor-pointer"
+                              />
+                            ) : null}
+                          </td>
+                        )}
+                        {isAdmin && (
+                          <td className="px-5 py-3.5 font-semibold text-slate-900">
+                            {leave.employee_id}
+                          </td>
+                        )}
+                        <td className="px-5 py-3.5 font-medium text-slate-800">
+                          {leave.start_date} <span className="text-slate-400">to</span> {leave.end_date}
+                        </td>
+                        <td className="px-5 py-3.5">
+                          <span
+                            className={`inline-block px-2.5 py-0.5 rounded-md text-xs font-semibold border ${getTypeBadge(
+                              leave.leave_type
+                            )}`}
+                          >
+                            {leave.leave_type.replace('_', ' ')}
+                          </span>
+                        </td>
+                        <td className="px-5 py-3.5 text-xs text-slate-600 max-w-xs truncate" title={leave.reason}>
+                          {leave.reason}
+                        </td>
+                        <td className="px-5 py-3.5">{getStatusBadge(leave.status)}</td>
+                        {isAdmin && (
+                          <td className="px-5 py-3.5 text-right">
+                            {leave.status === 'PENDING' ? (
+                              <div className="flex items-center justify-end gap-2">
+                                <button
+                                  onClick={() => handleReview(leave.leave_id, 'APPROVED')}
+                                  disabled={processingId === leave.leave_id}
+                                  className="px-2.5 py-1 text-xs font-semibold bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg transition flex items-center gap-1 shadow-2xs disabled:opacity-50"
+                                >
+                                  <Check className="w-3.5 h-3.5" />
+                                  Approve
+                                </button>
+                                <button
+                                  onClick={() => handleReview(leave.leave_id, 'REJECTED')}
+                                  disabled={processingId === leave.leave_id}
+                                  className="px-2.5 py-1 text-xs font-semibold bg-rose-600 hover:bg-rose-700 text-white rounded-lg transition flex items-center gap-1 shadow-2xs disabled:opacity-50"
+                                >
+                                  <X className="w-3.5 h-3.5" />
+                                  Reject
+                                </button>
+                              </div>
+                            ) : (
+                              <span className="text-xs text-slate-400 italic">Resolved</span>
+                            )}
+                          </td>
+                        )}
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
           </div>
         </div>
-      </div>
-      ) : (
+      ) : activeTab === 'holidays' ? (
         /* Company Holidays Tab */
         <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 space-y-4">
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 border-b border-slate-100 pb-4">
@@ -571,6 +605,17 @@ export const LeavesPage: React.FC = () => {
               </tbody>
             </table>
           </div>
+        </div>
+      ) : (
+        /* Adjustments & Regularization Tab */
+        <div className="space-y-4">
+          <div className="bg-slate-50 border border-slate-200 rounded-2xl p-4">
+            <h3 className="text-sm font-bold text-slate-800">Leave & Attendance Adjustments</h3>
+            <p className="text-xs text-slate-500 mt-1 leading-relaxed">
+              Leave requests across the company, and the leave types, grants and corrections behind every balance. Balances come from an append-only ledger: every grant and adjustment is a ledger entry with a reason in the audit trail.
+            </p>
+          </div>
+          <RegularizationReviewPanel />
         </div>
       )}
 
@@ -648,20 +693,20 @@ export const LeavesPage: React.FC = () => {
                 />
               </div>
 
-              <div className="flex justify-end gap-2 pt-2 border-t border-slate-100">
+              <div className="flex justify-end gap-3 pt-2">
                 <button
                   type="button"
                   onClick={() => setModalOpen(false)}
-                  className="px-4 py-2 text-xs font-medium text-slate-600 hover:bg-slate-100 rounded-lg transition"
+                  className="px-4 py-2 border border-slate-200 text-slate-600 rounded-lg text-sm hover:bg-slate-50 font-medium"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={submitting}
-                  className="px-4 py-2 text-xs font-semibold text-white bg-blue-600 hover:bg-blue-700 rounded-lg shadow-sm transition disabled:opacity-50"
+                  className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-semibold shadow-sm transition disabled:opacity-50 flex items-center gap-1.5"
                 >
-                  {submitting ? 'Submitting...' : 'Submit Application'}
+                  {submitting ? 'Submitting...' : 'Submit Request'}
                 </button>
               </div>
             </form>
@@ -669,14 +714,14 @@ export const LeavesPage: React.FC = () => {
         </div>
       )}
 
-      {/* Add Company Holiday Modal (Admin) */}
+      {/* Holiday Modal (Admin) */}
       {holidayModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-xs p-4">
           <div className="bg-white rounded-2xl border border-slate-200 shadow-xl max-w-md w-full p-6 space-y-4 animate-in fade-in zoom-in-95 duration-150">
             <div className="flex justify-between items-center border-b border-slate-100 pb-3">
               <div className="flex items-center gap-2">
                 <Sparkles className="w-5 h-5 text-purple-600" />
-                <h3 className="text-lg font-bold text-slate-900">Add Company Holiday</h3>
+                <h3 className="text-lg font-bold text-slate-900">Configure Company Holiday</h3>
               </div>
               <button
                 onClick={() => setHolidayModalOpen(false)}
@@ -703,9 +748,9 @@ export const LeavesPage: React.FC = () => {
                 <input
                   type="text"
                   required
+                  placeholder="e.g. New Year's Day, Diwali, Thanksgiving"
                   value={holidayName}
                   onChange={(e) => setHolidayName(e.target.value)}
-                  placeholder="e.g. Gandhi Jayanti, Diwali, Thanksgiving"
                   className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm outline-none focus:ring-2 focus:ring-purple-500"
                 />
               </div>
@@ -714,27 +759,27 @@ export const LeavesPage: React.FC = () => {
                 <label className="block text-xs font-semibold text-slate-700 mb-1">Description (Optional)</label>
                 <textarea
                   rows={2}
+                  placeholder="Brief note or celebration info"
                   value={holidayDesc}
                   onChange={(e) => setHolidayDesc(e.target.value)}
-                  placeholder="e.g. Official national public holiday"
                   className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm outline-none focus:ring-2 focus:ring-purple-500"
                 />
               </div>
 
-              <div className="flex justify-end gap-2 pt-2 border-t border-slate-100">
+              <div className="flex justify-end gap-3 pt-2">
                 <button
                   type="button"
                   onClick={() => setHolidayModalOpen(false)}
-                  className="px-4 py-2 text-xs font-medium text-slate-600 hover:bg-slate-100 rounded-lg transition"
+                  className="px-4 py-2 border border-slate-200 text-slate-600 rounded-lg text-sm hover:bg-slate-50 font-medium"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={holidaySubmitting}
-                  className="px-4 py-2 text-xs font-semibold text-white bg-purple-600 hover:bg-purple-700 rounded-lg shadow-sm transition disabled:opacity-50"
+                  className="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg text-sm font-semibold shadow-sm transition disabled:opacity-50"
                 >
-                  {holidaySubmitting ? 'Adding...' : 'Save Holiday'}
+                  {holidaySubmitting ? 'Saving...' : 'Save Holiday'}
                 </button>
               </div>
             </form>
