@@ -278,10 +278,10 @@ export const ReportsPage: React.FC = () => {
       {/* Top Header */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-slate-100">
+          <h1 className="text-2xl font-bold tracking-tight text-slate-900">
             {isAdmin ? 'Central Attendance Reports' : 'My Attendance Report'}
           </h1>
-          <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+          <p className="text-xs text-slate-500 mt-0.5">
             {isAdmin
               ? 'Consolidated multi-employee reports, weekly policy compliance audit, and data exports.'
               : 'Review your historical attendance records and policy compliance status across custom periods.'}
@@ -291,13 +291,13 @@ export const ReportsPage: React.FC = () => {
         {/* Tab & Action Controls */}
         <div className="flex flex-wrap items-center gap-2.5">
           {isAdmin && (
-            <div className="flex items-center bg-slate-100 dark:bg-slate-800 p-1 rounded-xl border border-slate-200/80 dark:border-slate-700 text-xs font-semibold">
+            <div className="flex items-center bg-slate-100 p-1 rounded-xl border border-slate-200/80 text-xs font-semibold">
               <button
                 onClick={() => setActiveTab('reports')}
                 className={`px-3 py-1.5 rounded-lg flex items-center gap-1.5 transition ${
                   activeTab === 'reports'
-                    ? 'bg-white dark:bg-slate-700 text-indigo-600 dark:text-indigo-400 shadow-xs'
-                    : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+                    ? 'bg-white text-indigo-600 shadow-xs'
+                    : 'text-slate-600 hover:text-slate-900'
                 }`}
               >
                 <BarChart3 className="w-3.5 h-3.5" />
@@ -307,8 +307,8 @@ export const ReportsPage: React.FC = () => {
                 onClick={() => setActiveTab('audit')}
                 className={`px-3 py-1.5 rounded-lg flex items-center gap-1.5 transition ${
                   activeTab === 'audit'
-                    ? 'bg-white dark:bg-slate-700 text-indigo-600 dark:text-indigo-400 shadow-xs'
-                    : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+                    ? 'bg-white text-indigo-600 shadow-xs'
+                    : 'text-slate-600 hover:text-slate-900'
                 }`}
               >
                 <Shield className="w-3.5 h-3.5" />
@@ -331,7 +331,7 @@ export const ReportsPage: React.FC = () => {
               <button
                 onClick={handleExportCSV}
                 disabled={filteredRecords.length === 0}
-                className="px-3 py-1.5 bg-slate-900 hover:bg-slate-800 dark:bg-slate-800 dark:hover:bg-slate-700 text-white rounded-xl text-xs font-semibold flex items-center gap-1.5 shadow-xs transition active:scale-95 disabled:opacity-50"
+                className="px-3 py-1.5 bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-xs font-semibold flex items-center gap-1.5 shadow-xs transition active:scale-95 disabled:opacity-50"
                 title="Export filtered records to CSV"
               >
                 <Download className="w-3.5 h-3.5" />
@@ -347,15 +347,15 @@ export const ReportsPage: React.FC = () => {
         <div
           className={`p-3.5 rounded-xl text-xs font-medium flex items-center justify-between gap-2 ${
             feedback.type === 'success'
-              ? 'bg-emerald-50 text-emerald-800 border border-emerald-200 dark:bg-emerald-950/40 dark:border-emerald-800 dark:text-emerald-300'
-              : 'bg-rose-50 text-rose-800 border border-rose-200 dark:bg-rose-950/40 dark:border-rose-800 dark:text-rose-300'
+              ? 'bg-emerald-50 text-emerald-800 border border-emerald-200'
+              : 'bg-rose-50 text-rose-800 border border-rose-200'
           }`}
         >
           <div className="flex items-center gap-2">
             {feedback.type === 'success' ? (
-              <CheckCircle2 className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
+              <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
             ) : (
-              <AlertTriangle className="w-4 h-4 text-rose-600 dark:text-rose-400 shrink-0" />
+              <AlertTriangle className="w-4 h-4 text-rose-600 shrink-0" />
             )}
             <span>{feedback.text}</span>
           </div>
@@ -372,10 +372,10 @@ export const ReportsPage: React.FC = () => {
           {/* Filter & Date Selection Bar */}
           <form
             onSubmit={handleGenerate}
-            className="bg-white dark:bg-slate-900 p-5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-xs space-y-4"
+            className="bg-white p-5 rounded-2xl border border-slate-200 shadow-xs space-y-4"
           >
             {/* Quick Presets Row */}
-            <div className="flex flex-wrap items-center justify-between gap-2 pb-3 border-b border-slate-100 dark:border-slate-800">
+            <div className="flex flex-wrap items-center justify-between gap-2 pb-3 border-b border-slate-100">
               <div className="flex items-center gap-1.5">
                 <span className="text-[11px] font-semibold text-slate-500 mr-1 flex items-center gap-1">
                   <Calendar className="w-3 h-3 text-indigo-500" />
@@ -386,8 +386,8 @@ export const ReportsPage: React.FC = () => {
                   onClick={() => handlePresetSelect('daily')}
                   className={`px-2.5 py-1 rounded-lg text-xs font-medium border transition ${
                     period === 'daily'
-                      ? 'bg-indigo-50 text-indigo-700 border-indigo-300 dark:bg-indigo-950 dark:text-indigo-300'
-                      : 'border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-50'
+                      ? 'bg-indigo-50 text-indigo-700 border-indigo-300'
+                      : 'border-slate-200 text-slate-600 hover:bg-slate-50'
                   }`}
                 >
                   Today
@@ -397,8 +397,8 @@ export const ReportsPage: React.FC = () => {
                   onClick={() => handlePresetSelect('weekly')}
                   className={`px-2.5 py-1 rounded-lg text-xs font-medium border transition ${
                     period === 'weekly'
-                      ? 'bg-indigo-50 text-indigo-700 border-indigo-300 dark:bg-indigo-950 dark:text-indigo-300'
-                      : 'border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-50'
+                      ? 'bg-indigo-50 text-indigo-700 border-indigo-300'
+                      : 'border-slate-200 text-slate-600 hover:bg-slate-50'
                   }`}
                 >
                   This Week
@@ -408,8 +408,8 @@ export const ReportsPage: React.FC = () => {
                   onClick={() => handlePresetSelect('monthly')}
                   className={`px-2.5 py-1 rounded-lg text-xs font-medium border transition ${
                     period === 'monthly'
-                      ? 'bg-indigo-50 text-indigo-700 border-indigo-300 dark:bg-indigo-950 dark:text-indigo-300'
-                      : 'border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-50'
+                      ? 'bg-indigo-50 text-indigo-700 border-indigo-300'
+                      : 'border-slate-200 text-slate-600 hover:bg-slate-50'
                   }`}
                 >
                   This Month
@@ -418,14 +418,14 @@ export const ReportsPage: React.FC = () => {
 
               <div className="flex items-center gap-2">
                 {report && (
-                  <span className="text-[11px] font-medium text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded-md">
+                  <span className="text-[11px] font-medium text-slate-500 bg-slate-100 px-2 py-0.5 rounded-md">
                     Period: <strong>{report.metadata.start_date}</strong> to <strong>{report.metadata.end_date}</strong> (Asia/Kolkata)
                   </span>
                 )}
                 <button
                   type="button"
                   onClick={handleResetFilters}
-                  className="px-2.5 py-1 rounded-lg text-xs font-semibold text-slate-500 hover:text-slate-800 dark:hover:text-slate-200 flex items-center gap-1 transition"
+                  className="px-2.5 py-1 rounded-lg text-xs font-semibold text-slate-500 hover:text-slate-800 flex items-center gap-1 transition"
                   title="Reset all filters to defaults"
                 >
                   <RotateCcw className="w-3 h-3" />
@@ -437,13 +437,13 @@ export const ReportsPage: React.FC = () => {
             {/* Inputs Grid */}
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4 items-end">
               <div>
-                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                <label className="block text-xs font-semibold text-slate-700 mb-1">
                   Period
                 </label>
                 <select
                   value={period}
                   onChange={(e) => setPeriod(e.target.value as any)}
-                  className="w-full px-3 py-2 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-medium bg-white dark:bg-slate-800 outline-none focus:ring-2 focus:ring-indigo-500"
+                  className="w-full px-3 py-2 border border-slate-200 rounded-xl text-xs font-medium bg-white outline-none focus:ring-2 focus:ring-indigo-500"
                 >
                   <option value="daily">Daily</option>
                   <option value="weekly">Weekly</option>
@@ -455,7 +455,7 @@ export const ReportsPage: React.FC = () => {
 
               {period !== 'custom' ? (
                 <div>
-                  <label htmlFor="target-date-input" className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                  <label htmlFor="target-date-input" className="block text-xs font-semibold text-slate-700 mb-1">
                     Target Date
                   </label>
                   <input
@@ -463,13 +463,13 @@ export const ReportsPage: React.FC = () => {
                     type="date"
                     value={targetDate}
                     onChange={(e) => setTargetDate(e.target.value)}
-                    className="w-full px-3 py-2 border border-slate-200 dark:border-slate-700 rounded-xl text-xs outline-none focus:ring-2 focus:ring-indigo-500 bg-white dark:bg-slate-800"
+                    className="w-full px-3 py-2 border border-slate-200 rounded-xl text-xs outline-none focus:ring-2 focus:ring-indigo-500 bg-white"
                   />
                 </div>
               ) : (
                 <>
                   <div>
-                    <label htmlFor="custom-start-date" className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                    <label htmlFor="custom-start-date" className="block text-xs font-semibold text-slate-700 mb-1">
                       Start Date
                     </label>
                     <input
@@ -477,11 +477,11 @@ export const ReportsPage: React.FC = () => {
                       type="date"
                       value={startDate}
                       onChange={(e) => setStartDate(e.target.value)}
-                      className="w-full px-3 py-2 border border-slate-200 dark:border-slate-700 rounded-xl text-xs outline-none focus:ring-2 focus:ring-indigo-500 bg-white dark:bg-slate-800"
+                      className="w-full px-3 py-2 border border-slate-200 rounded-xl text-xs outline-none focus:ring-2 focus:ring-indigo-500 bg-white"
                     />
                   </div>
                   <div>
-                    <label htmlFor="custom-end-date" className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                    <label htmlFor="custom-end-date" className="block text-xs font-semibold text-slate-700 mb-1">
                       End Date
                     </label>
                     <input
@@ -489,7 +489,7 @@ export const ReportsPage: React.FC = () => {
                       type="date"
                       value={endDate}
                       onChange={(e) => setEndDate(e.target.value)}
-                      className="w-full px-3 py-2 border border-slate-200 dark:border-slate-700 rounded-xl text-xs outline-none focus:ring-2 focus:ring-indigo-500 bg-white dark:bg-slate-800"
+                      className="w-full px-3 py-2 border border-slate-200 rounded-xl text-xs outline-none focus:ring-2 focus:ring-indigo-500 bg-white"
                     />
                   </div>
                 </>
@@ -498,7 +498,7 @@ export const ReportsPage: React.FC = () => {
 
               {isAdmin && (
                 <div>
-                  <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                  <label className="block text-xs font-semibold text-slate-700 mb-1">
                     Employee ID (Optional)
                   </label>
                   <input
@@ -506,7 +506,7 @@ export const ReportsPage: React.FC = () => {
                     placeholder="e.g. EMP001"
                     value={employeeIdFilter}
                     onChange={(e) => setEmployeeIdFilter(e.target.value)}
-                    className="w-full px-3 py-2 border border-slate-200 dark:border-slate-700 rounded-xl text-xs outline-none focus:ring-2 focus:ring-indigo-500 bg-white dark:bg-slate-800"
+                    className="w-full px-3 py-2 border border-slate-200 rounded-xl text-xs outline-none focus:ring-2 focus:ring-indigo-500 bg-white"
                   />
                 </div>
               )}
@@ -558,7 +558,7 @@ export const ReportsPage: React.FC = () => {
 
           {/* Search, Department, Status & Anomaly Filter Bar */}
           {report && report.employees.length > 0 && (
-            <div className="flex flex-col md:flex-row justify-between gap-3 bg-white dark:bg-slate-900 p-3 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-2xs">
+            <div className="flex flex-col md:flex-row justify-between gap-3 bg-white p-3 rounded-2xl border border-slate-200 shadow-2xs">
               <div className="relative flex-1">
                 <Search className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
                 <input
@@ -566,7 +566,7 @@ export const ReportsPage: React.FC = () => {
                   placeholder="Filter by employee name, ID, or department..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="w-full pl-9 pr-3 py-1.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs outline-none focus:ring-2 focus:ring-indigo-500"
+                  className="w-full pl-9 pr-3 py-1.5 bg-slate-50 border border-slate-200 rounded-xl text-xs outline-none focus:ring-2 focus:ring-indigo-500"
                 />
               </div>
 
@@ -578,7 +578,7 @@ export const ReportsPage: React.FC = () => {
                     <select
                       value={departmentFilter}
                       onChange={(e) => setDepartmentFilter(e.target.value)}
-                      className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs font-medium px-2.5 py-1.5 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500"
+                      className="bg-white border border-slate-200 text-xs font-medium px-2.5 py-1.5 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500"
                     >
                       <option value="ALL">All Departments</option>
                       {departments.map((dept) => (
@@ -596,7 +596,7 @@ export const ReportsPage: React.FC = () => {
                   <select
                     value={statusFilter}
                     onChange={(e) => setStatusFilter(e.target.value as any)}
-                    className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs font-medium px-2.5 py-1.5 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500"
+                    className="bg-white border border-slate-200 text-xs font-medium px-2.5 py-1.5 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500"
                   >
                     <option value="ALL">All Statuses</option>
                     <option value="COMPLIANT">Compliant (Met)</option>
@@ -610,7 +610,7 @@ export const ReportsPage: React.FC = () => {
                   <select
                     value={anomalyFilter}
                     onChange={(e) => setAnomalyFilter(e.target.value as any)}
-                    className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs font-medium px-2.5 py-1.5 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500"
+                    className="bg-white border border-slate-200 text-xs font-medium px-2.5 py-1.5 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500"
                   >
                     <option value="ALL">All Records</option>
                     <option value="ZERO_DURATION_ONLY">0.0h Non-Qualifying Only</option>
@@ -622,7 +622,7 @@ export const ReportsPage: React.FC = () => {
           )}
 
           {/* Main Report Table & Mobile Cards */}
-          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl overflow-hidden shadow-xs">
+          <div className="bg-white border border-slate-200 rounded-2xl overflow-hidden shadow-xs">
             {loading ? (
               <div className="p-6">
                 <LoadingSkeleton variant="table-row" count={5} />
@@ -649,7 +649,7 @@ export const ReportsPage: React.FC = () => {
                     setStatusFilter('ALL');
                     setAnomalyFilter('ALL');
                   }}
-                  className="mt-3 px-3 py-1.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 dark:bg-indigo-950 dark:hover:bg-indigo-900 dark:text-indigo-300 text-xs font-semibold rounded-lg transition"
+                  className="mt-3 px-3 py-1.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 text-xs font-semibold rounded-lg transition"
                 >
                   Clear Table Filters
                 </button>
@@ -658,13 +658,13 @@ export const ReportsPage: React.FC = () => {
               <>
                 {/* Desktop View Table */}
                 <div className="hidden md:block overflow-x-auto">
-                  <table className="w-full text-xs text-left text-slate-600 dark:text-slate-300">
-                    <thead className="text-[11px] uppercase bg-slate-50 dark:bg-slate-800 text-slate-500 dark:text-slate-400 border-b border-slate-200 dark:border-slate-700">
+                  <table className="w-full text-xs text-left text-slate-600">
+                    <thead className="text-[11px] uppercase bg-slate-50 text-slate-500 border-b border-slate-200">
                       <tr>
                         <th className="px-5 py-3 font-semibold">
                           <button
                             onClick={() => handleSort('name')}
-                            className="flex items-center gap-1 hover:text-slate-900 dark:hover:text-slate-200"
+                            className="flex items-center gap-1 hover:text-slate-900"
                           >
                             <span>Employee</span>
                             <ArrowUpDown className="w-3 h-3 text-slate-400" />
@@ -673,7 +673,7 @@ export const ReportsPage: React.FC = () => {
                         <th className="px-5 py-3 font-semibold">
                           <button
                             onClick={() => handleSort('department')}
-                            className="flex items-center gap-1 hover:text-slate-900 dark:hover:text-slate-200"
+                            className="flex items-center gap-1 hover:text-slate-900"
                           >
                             <span>Department</span>
                             <ArrowUpDown className="w-3 h-3 text-slate-400" />
@@ -682,7 +682,7 @@ export const ReportsPage: React.FC = () => {
                         <th className="px-5 py-3 font-semibold">
                           <button
                             onClick={() => handleSort('days')}
-                            className="flex items-center gap-1 hover:text-slate-900 dark:hover:text-slate-200"
+                            className="flex items-center gap-1 hover:text-slate-900"
                           >
                             <span>Days Attended</span>
                             <ArrowUpDown className="w-3 h-3 text-slate-400" />
@@ -691,7 +691,7 @@ export const ReportsPage: React.FC = () => {
                         <th className="px-5 py-3 font-semibold">
                           <button
                             onClick={() => handleSort('hours')}
-                            className="flex items-center gap-1 hover:text-slate-900 dark:hover:text-slate-200"
+                            className="flex items-center gap-1 hover:text-slate-900"
                           >
                             <span>Total Office Hours</span>
                             <ArrowUpDown className="w-3 h-3 text-slate-400" />
@@ -700,7 +700,7 @@ export const ReportsPage: React.FC = () => {
                         <th className="px-5 py-3 font-semibold">
                           <button
                             onClick={() => handleSort('compliance')}
-                            className="flex items-center gap-1 hover:text-slate-900 dark:hover:text-slate-200"
+                            className="flex items-center gap-1 hover:text-slate-900"
                           >
                             <span>Policy Status</span>
                             <ArrowUpDown className="w-3 h-3 text-slate-400" />
@@ -709,7 +709,7 @@ export const ReportsPage: React.FC = () => {
                         <th className="px-5 py-3 font-semibold text-right">Daily Logs</th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+                    <tbody className="divide-y divide-slate-100">
                       {filteredRecords.map((r: EmployeeReportItem) => {
                         const isExpanded = expandedEmployee === r.employee_id;
                         const policy = getPolicyBreakdown(r.total_attended_days, r.total_office_hours, r.overall_compliance);
@@ -722,17 +722,17 @@ export const ReportsPage: React.FC = () => {
 
                         return (
                           <React.Fragment key={r.employee_id}>
-                            <tr className="hover:bg-slate-50/60 dark:hover:bg-slate-800/40 transition">
+                            <tr className="hover:bg-slate-50/60 transition">
                               <td className="px-5 py-3.5">
-                                <div className="font-bold text-slate-900 dark:text-slate-100">{r.full_name}</div>
+                                <div className="font-bold text-slate-900">{r.full_name}</div>
                                 <div className="text-[11px] text-slate-400 font-mono">{r.employee_id}</div>
                               </td>
-                              <td className="px-5 py-3.5 text-slate-700 dark:text-slate-300 font-medium">
+                              <td className="px-5 py-3.5 text-slate-700 font-medium">
                                 {r.department}
                               </td>
                               <td className="px-5 py-3.5">
                                 <div className="flex items-center gap-1.5">
-                                  <span className="font-bold text-slate-900 dark:text-slate-100">{r.total_attended_days}</span>
+                                  <span className="font-bold text-slate-900">{r.total_attended_days}</span>
                                   <span className="text-[11px] text-slate-400">/ 3 days</span>
                                   {policy.meetsDays ? (
                                     <span className="text-[10px] font-bold text-emerald-600 bg-emerald-50 px-1 rounded border border-emerald-200">MET</span>
@@ -743,7 +743,7 @@ export const ReportsPage: React.FC = () => {
                               </td>
                               <td className="px-5 py-3.5">
                                 <div className="flex items-center gap-1.5">
-                                  <span className="font-bold text-slate-900 dark:text-slate-100">{r.total_office_hours.toFixed(2)}</span>
+                                  <span className="font-bold text-slate-900">{r.total_office_hours.toFixed(2)}</span>
                                   <span className="text-[11px] text-slate-400">/ 15.0h</span>
                                   {policy.meetsHours ? (
                                     <span className="text-[10px] font-bold text-emerald-600 bg-emerald-50 px-1 rounded border border-emerald-200">MET</span>
@@ -757,7 +757,7 @@ export const ReportsPage: React.FC = () => {
                                   <StatusBadge status={r.overall_compliance || 'PENDING'} />
                                   {hasZeroDuration && (
                                     <span
-                                      className="text-[10px] font-semibold text-amber-800 bg-amber-50 dark:bg-amber-950 dark:text-amber-300 px-1.5 py-0.2 rounded border border-amber-200 dark:border-amber-800 flex items-center gap-1"
+                                      className="text-[10px] font-semibold text-amber-800 bg-amber-50 px-1.5 py-0.2 rounded border border-amber-200 flex items-center gap-1"
                                       title="Option B: 0.0h Non-qualifying Day (UI Anomaly Warning)"
                                     >
                                       <AlertCircle className="w-3 h-3 text-amber-600" />
@@ -765,7 +765,7 @@ export const ReportsPage: React.FC = () => {
                                     </span>
                                   )}
                                   {hasStale && (
-                                    <span className="text-[10px] font-semibold text-rose-700 bg-rose-50 dark:bg-rose-950 dark:text-rose-300 px-1.5 py-0.2 rounded border border-rose-200 dark:border-rose-800 flex items-center gap-1">
+                                    <span className="text-[10px] font-semibold text-rose-700 bg-rose-50 px-1.5 py-0.2 rounded border border-rose-200 flex items-center gap-1">
                                       <XCircle className="w-3 h-3 text-rose-600" />
                                       <span>Incomplete Session Flagged</span>
                                     </span>
@@ -778,7 +778,7 @@ export const ReportsPage: React.FC = () => {
                                   data-testid={`daily-logs-btn-${r.employee_id}`}
                                   aria-label={`Toggle daily logs for ${r.full_name}`}
                                   onClick={() => setExpandedEmployee(isExpanded ? null : r.employee_id)}
-                                  className="px-2.5 py-1 rounded-lg border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 text-[11px] font-semibold inline-flex items-center gap-1 transition"
+                                  className="px-2.5 py-1 rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-100 text-[11px] font-semibold inline-flex items-center gap-1 transition"
                                 >
                                   <span>{isExpanded ? 'Hide' : 'Daily Logs'}</span>
                                   {isExpanded ? (
@@ -792,11 +792,11 @@ export const ReportsPage: React.FC = () => {
 
                             {/* Expanded Daily Breakdown Row */}
                             {isExpanded && (
-                              <tr className="bg-slate-50/70 dark:bg-slate-950/40 border-t border-b border-slate-200 dark:border-slate-800">
+                              <tr className="bg-slate-50/70 border-t border-b border-slate-200">
                                 <td colSpan={6} className="px-6 py-4">
                                   <div className="space-y-3">
                                     <div className="flex items-center justify-between">
-                                      <h4 className="text-xs font-bold text-slate-900 dark:text-slate-100">
+                                      <h4 className="text-xs font-bold text-slate-900">
                                         Daily Breakdown for {r.full_name} ({r.daily_records.length} days covered)
                                       </h4>
                                       <span className="text-[11px] text-slate-500 font-mono">
@@ -810,11 +810,11 @@ export const ReportsPage: React.FC = () => {
                                         return (
                                           <div
                                             key={d.work_date}
-                                            className={`p-3 rounded-xl border bg-white dark:bg-slate-900 text-xs space-y-1.5 shadow-2xs ${classification.borderColor}`}
+                                            className={`p-3 rounded-xl border bg-white text-xs space-y-1.5 shadow-2xs ${classification.borderColor}`}
                                           >
                                             <div className="flex justify-between items-start gap-1">
                                               <div>
-                                                <span className="font-bold text-slate-900 dark:text-slate-100 block">
+                                                <span className="font-bold text-slate-900 block">
                                                   {formatISTDate(d.work_date)}
                                                 </span>
                                                 <span className="text-[10px] text-slate-400 font-mono">
@@ -831,22 +831,22 @@ export const ReportsPage: React.FC = () => {
                                               </span>
                                             </div>
 
-                                            <div className="pt-1.5 border-t border-slate-100 dark:border-slate-800 space-y-1 text-[11px] text-slate-600 dark:text-slate-400">
+                                            <div className="pt-1.5 border-t border-slate-100 space-y-1 text-[11px] text-slate-600">
                                               <div className="flex justify-between">
                                                 <span>Duration:</span>
-                                                <strong className="text-slate-800 dark:text-slate-200">
+                                                <strong className="text-slate-800">
                                                   {d.duration_hours.toFixed(2)}h ({d.duration_seconds}s)
                                                 </strong>
                                               </div>
                                               <div className="flex justify-between">
                                                 <span>Entry:</span>
-                                                <span className="text-slate-700 dark:text-slate-300 font-mono">
+                                                <span className="text-slate-700 font-mono">
                                                   {formatISTTime(d.entry_time)}
                                                 </span>
                                               </div>
                                               <div className="flex justify-between">
                                                 <span>Exit:</span>
-                                                <span className="text-slate-700 dark:text-slate-300 font-mono">
+                                                <span className="text-slate-700 font-mono">
                                                   {formatISTTime(d.exit_time)}
                                                 </span>
                                               </div>
@@ -865,7 +865,7 @@ export const ReportsPage: React.FC = () => {
                     </tbody>
 
                     {/* Table Totals Footer */}
-                    <tfoot className="bg-slate-50 dark:bg-slate-800/80 border-t-2 border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-100 font-bold">
+                    <tfoot className="bg-slate-50 border-t-2 border-slate-200 text-slate-900 font-bold">
                       <tr>
                         <td className="px-5 py-3">
                           Total Staff: {totals.totalStaff}
@@ -886,7 +886,7 @@ export const ReportsPage: React.FC = () => {
                 </div>
 
                 {/* Mobile Responsive Cards View (Shown on <md) */}
-                <div className="md:hidden divide-y divide-slate-100 dark:divide-slate-800 p-3 space-y-3">
+                <div className="md:hidden divide-y divide-slate-100 p-3 space-y-3">
                   {filteredRecords.map((r: EmployeeReportItem) => {
                     const isExpanded = expandedEmployee === r.employee_id;
                     const policy = getPolicyBreakdown(r.total_attended_days, r.total_office_hours, r.overall_compliance);
@@ -897,41 +897,41 @@ export const ReportsPage: React.FC = () => {
                     return (
                       <div
                         key={r.employee_id}
-                        className="rounded-xl border border-slate-200 dark:border-slate-800 p-4 bg-white dark:bg-slate-900 shadow-2xs space-y-3"
+                        className="rounded-xl border border-slate-200 p-4 bg-white shadow-2xs space-y-3"
                       >
                         <div className="flex items-start justify-between gap-2">
                           <div>
-                            <h3 className="font-bold text-sm text-slate-900 dark:text-slate-100">{r.full_name}</h3>
+                            <h3 className="font-bold text-sm text-slate-900">{r.full_name}</h3>
                             <p className="text-xs text-slate-500 font-mono">{r.employee_id} • {r.department}</p>
                           </div>
                           <StatusBadge status={r.overall_compliance || 'PENDING'} />
                         </div>
 
                         {hasZeroDuration && (
-                          <div className="text-[10px] font-semibold text-amber-800 bg-amber-50 dark:bg-amber-950 dark:text-amber-300 px-2 py-1 rounded-md border border-amber-200 dark:border-amber-800 flex items-center gap-1">
+                          <div className="text-[10px] font-semibold text-amber-800 bg-amber-50 px-2 py-1 rounded-md border border-amber-200 flex items-center gap-1">
                             <AlertCircle className="w-3 h-3 text-amber-600" />
                             <span>Zero-duration (0.0h) record in period</span>
                           </div>
                         )}
 
-                        <div className="grid grid-cols-2 gap-2 text-xs pt-1 border-t border-slate-100 dark:border-slate-800">
+                        <div className="grid grid-cols-2 gap-2 text-xs pt-1 border-t border-slate-100">
                           <div>
                             <span className="text-slate-500 block text-[11px]">Days Attended</span>
-                            <strong className="text-slate-900 dark:text-slate-100">{r.total_attended_days} / 3 days</strong>
+                            <strong className="text-slate-900">{r.total_attended_days} / 3 days</strong>
                             <span className="block text-[10px] text-slate-400 mt-0.5">
                               {policy.meetsDays ? 'Target Met' : `${policy.daysRemaining} needed`}
                             </span>
                           </div>
                           <div>
                             <span className="text-slate-500 block text-[11px]">Total Office Hours</span>
-                            <strong className="text-slate-900 dark:text-slate-100">{r.total_office_hours.toFixed(2)} / 15.0 hrs</strong>
+                            <strong className="text-slate-900">{r.total_office_hours.toFixed(2)} / 15.0 hrs</strong>
                             <span className="block text-[10px] text-slate-400 mt-0.5">
                               {policy.meetsHours ? 'Target Met' : `${policy.hoursRemaining.toFixed(1)}h needed`}
                             </span>
                           </div>
                         </div>
 
-                        <div className="pt-2 border-t border-slate-100 dark:border-slate-800 flex justify-end">
+                        <div className="pt-2 border-t border-slate-100 flex justify-end">
                           <button
                             onClick={() => setExpandedEmployee(isExpanded ? null : r.employee_id)}
                             className="text-xs font-semibold text-indigo-600 hover:text-indigo-700 flex items-center gap-1"
@@ -943,8 +943,8 @@ export const ReportsPage: React.FC = () => {
 
                         {/* Mobile Expanded Daily Breakdown */}
                         {isExpanded && (
-                          <div className="pt-3 border-t border-slate-100 dark:border-slate-800 space-y-2">
-                            <h5 className="text-xs font-bold text-slate-800 dark:text-slate-200">
+                          <div className="pt-3 border-t border-slate-100 space-y-2">
+                            <h5 className="text-xs font-bold text-slate-800">
                               Daily Logs (Asia/Kolkata):
                             </h5>
                             <div className="space-y-2">
@@ -953,17 +953,17 @@ export const ReportsPage: React.FC = () => {
                                 return (
                                   <div
                                     key={d.work_date}
-                                    className={`p-2.5 rounded-lg border text-xs space-y-1 bg-slate-50 dark:bg-slate-800/60 ${classification.borderColor}`}
+                                    className={`p-2.5 rounded-lg border text-xs space-y-1 bg-slate-50 ${classification.borderColor}`}
                                   >
                                     <div className="flex justify-between items-center">
-                                      <span className="font-bold text-slate-900 dark:text-slate-100">
+                                      <span className="font-bold text-slate-900">
                                         {formatISTDate(d.work_date)}
                                       </span>
                                       <span className={`text-[10px] font-bold px-1.5 py-0.2 rounded ${classification.badgeColor}`}>
                                         {classification.label}
                                       </span>
                                     </div>
-                                    <div className="flex justify-between text-[11px] text-slate-600 dark:text-slate-400">
+                                    <div className="flex justify-between text-[11px] text-slate-600">
                                       <span>Hours: {d.duration_hours.toFixed(2)}h</span>
                                       <span>In: {formatISTTime(d.entry_time)}</span>
                                       <span>Out: {formatISTTime(d.exit_time)}</span>
@@ -987,20 +987,20 @@ export const ReportsPage: React.FC = () => {
       {/* Email Report Modal (Admin Only) */}
       {showEmailModal && isAdmin && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-xs p-4">
-          <div className="bg-white dark:bg-slate-900 rounded-2xl max-w-md w-full p-6 shadow-xl space-y-4 animate-in fade-in zoom-in-95 duration-100 border border-slate-200 dark:border-slate-800">
+          <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-xl space-y-4 animate-in fade-in zoom-in-95 duration-100 border border-slate-200">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <div className="p-2.5 bg-indigo-50 dark:bg-indigo-950 text-indigo-600 dark:text-indigo-400 rounded-xl">
+                <div className="p-2.5 bg-indigo-50 text-indigo-600 rounded-xl">
                   <Mail className="w-5 h-5" />
                 </div>
                 <div>
-                  <h3 className="text-sm font-bold text-slate-900 dark:text-slate-100">Email Attendance Report</h3>
+                  <h3 className="text-sm font-bold text-slate-900">Email Attendance Report</h3>
                   <p className="text-xs text-slate-500">Dispatch formatted HTML report to any inbox</p>
                 </div>
               </div>
               <button
                 onClick={() => setShowEmailModal(false)}
-                className="p-1 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
+                className="p-1 rounded-lg text-slate-400 hover:text-slate-600"
               >
                 <X className="w-4 h-4" />
               </button>
@@ -1008,7 +1008,7 @@ export const ReportsPage: React.FC = () => {
 
             <form onSubmit={handleSendEmail} className="space-y-4">
               <div>
-                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                <label className="block text-xs font-semibold text-slate-700 mb-1">
                   Destination Email Address
                 </label>
                 <input
@@ -1017,11 +1017,11 @@ export const ReportsPage: React.FC = () => {
                   value={recipientEmail}
                   onChange={(e) => setRecipientEmail(e.target.value)}
                   placeholder="e.g. devops@company.com"
-                  className="w-full px-3.5 py-2 border border-slate-200 dark:border-slate-700 rounded-xl text-xs outline-none focus:ring-2 focus:ring-indigo-500 bg-white dark:bg-slate-800"
+                  className="w-full px-3.5 py-2 border border-slate-200 rounded-xl text-xs outline-none focus:ring-2 focus:ring-indigo-500 bg-white"
                 />
               </div>
 
-              <div className="p-3 bg-slate-50 dark:bg-slate-800/60 rounded-xl text-xs text-slate-600 dark:text-slate-400 space-y-1 border border-slate-200/70 dark:border-slate-700">
+              <div className="p-3 bg-slate-50 rounded-xl text-xs text-slate-600 space-y-1 border border-slate-200/70">
                 <div>
                   <strong>Period:</strong> {period.toUpperCase()}
                 </div>
@@ -1042,7 +1042,7 @@ export const ReportsPage: React.FC = () => {
                 <button
                   type="button"
                   onClick={() => setShowEmailModal(false)}
-                  className="px-3.5 py-1.5 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 rounded-xl text-xs font-semibold hover:bg-slate-50 dark:hover:bg-slate-800"
+                  className="px-3.5 py-1.5 border border-slate-200 text-slate-600 rounded-xl text-xs font-semibold hover:bg-slate-50"
                 >
                   Cancel
                 </button>

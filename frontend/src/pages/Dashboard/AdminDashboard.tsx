@@ -203,8 +203,8 @@ export const AdminDashboard: React.FC = () => {
     return (
       <div className="space-y-6">
         <div className="space-y-2">
-          <div className="h-7 w-64 bg-slate-200 dark:bg-slate-700 rounded animate-pulse" />
-          <div className="h-4 w-96 bg-slate-100 dark:bg-slate-800 rounded animate-pulse" />
+          <div className="h-7 w-64 bg-slate-200 rounded animate-pulse" />
+          <div className="h-4 w-96 bg-slate-100 rounded animate-pulse" />
         </div>
         <LoadingSkeleton variant="stat" count={5} />
         <LoadingSkeleton variant="card" count={2} />
@@ -214,9 +214,9 @@ export const AdminDashboard: React.FC = () => {
 
   if (error) {
     return (
-      <div className="rounded-2xl border border-rose-200 bg-rose-50 p-6 text-rose-800 dark:bg-rose-950/40 dark:border-rose-800 dark:text-rose-300">
+      <div className="rounded-2xl border border-rose-200 bg-rose-50 p-6 text-rose-800">
         <div className="flex items-center gap-2">
-          <AlertTriangle className="h-5 w-5 text-rose-600 dark:text-rose-400" />
+          <AlertTriangle className="h-5 w-5 text-rose-600" />
           <h3 className="font-bold">Failed to load Dashboard</h3>
         </div>
         <p className="mt-1 text-xs">{error}</p>
@@ -245,15 +245,15 @@ export const AdminDashboard: React.FC = () => {
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
           <div className="flex items-center gap-2.5">
-            <h1 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-slate-100">
+            <h1 className="text-2xl font-bold tracking-tight text-slate-900">
               Company Overview & Compliance
             </h1>
-            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-indigo-50 text-indigo-700 border border-indigo-200 dark:bg-indigo-950/50 dark:text-indigo-300 dark:border-indigo-800">
+            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-indigo-50 text-indigo-700 border border-indigo-200">
               <Radio className="w-3 h-3 text-emerald-500 animate-pulse" />
               <span>Live Monitor</span>
             </span>
           </div>
-          <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+          <p className="text-xs text-slate-500 mt-0.5">
             Enterprise attendance monitoring, policy compliance audits, and exception triage.
           </p>
         </div>
@@ -262,7 +262,7 @@ export const AdminDashboard: React.FC = () => {
           <button
             onClick={() => fetchDashboardData(true)}
             disabled={isRefreshing}
-            className="p-2 rounded-xl border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 transition"
+            className="p-2 rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-50 transition"
             title="Refresh dashboard data"
           >
             <RefreshCw className={`w-3.5 h-3.5 ${isRefreshing ? 'animate-spin text-indigo-600' : ''}`} />
@@ -331,38 +331,38 @@ export const AdminDashboard: React.FC = () => {
       </div>
 
       {/* Weekly Compliance & Policy Target Summary Bar */}
-      <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-linear-to-r from-indigo-50/60 via-white to-slate-50/60 dark:from-slate-900 dark:via-slate-900/90 dark:to-slate-900 p-4 shadow-2xs">
+      <div className="rounded-2xl border border-slate-200 bg-linear-to-r from-indigo-50/60 via-white to-slate-50/60 p-4 shadow-2xs">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div className="space-y-1">
             <div className="flex items-center gap-2">
-              <span className="text-xs font-bold text-slate-900 dark:text-slate-100">
+              <span className="text-xs font-bold text-slate-900">
                 Weekly Policy Baseline
               </span>
               <span className="text-[11px] font-medium text-slate-500">
                 • Policy Week: {report?.metadata.start_date || '—'} to {report?.metadata.end_date || '—'}
               </span>
             </div>
-            <p className="text-[11px] text-slate-600 dark:text-slate-400">
+            <p className="text-[11px] text-slate-600">
               Authoritative Requirement: Minimum <strong>3 eligible office days</strong> and <strong>15.0 office hours</strong> per week in Asia/Kolkata timezone.
             </p>
           </div>
 
           <div className="flex flex-wrap items-center gap-4 text-xs font-semibold">
-            <div className="flex items-center gap-1.5 px-3 py-1 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 shadow-2xs">
+            <div className="flex items-center gap-1.5 px-3 py-1 rounded-xl bg-white border border-slate-200 shadow-2xs">
               <span className="text-slate-500">Compliance Rate:</span>
               <span className={`font-bold ${complianceRate >= 80 ? 'text-emerald-600' : 'text-rose-600'}`}>
                 {complianceRate}%
               </span>
             </div>
-            <div className="flex items-center gap-1.5 px-3 py-1 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 shadow-2xs">
+            <div className="flex items-center gap-1.5 px-3 py-1 rounded-xl bg-white border border-slate-200 shadow-2xs">
               <span className="text-slate-500">Total Hours Accumulated:</span>
-              <span className="font-bold text-slate-900 dark:text-slate-100">
+              <span className="font-bold text-slate-900">
                 {summary?.total_office_hours_accumulated.toFixed(1) || '0.0'} hrs
               </span>
             </div>
-            <div className="flex items-center gap-1.5 px-3 py-1 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 shadow-2xs">
+            <div className="flex items-center gap-1.5 px-3 py-1 rounded-xl bg-white border border-slate-200 shadow-2xs">
               <span className="text-slate-500">Avg Office Hours:</span>
-              <span className="font-bold text-slate-900 dark:text-slate-100">
+              <span className="font-bold text-slate-900">
                 {summary?.average_hours_per_employee.toFixed(1) || '0.0'} hrs
               </span>
             </div>
@@ -371,14 +371,14 @@ export const AdminDashboard: React.FC = () => {
       </div>
 
       {/* Employee Attendance Breakdown & Exception Triage */}
-      <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-xs overflow-hidden space-y-4 p-5">
+      <div className="rounded-2xl border border-slate-200 bg-white shadow-xs overflow-hidden space-y-4 p-5">
         <div className="flex flex-col lg:flex-row justify-between lg:items-center gap-4">
           <div>
-            <h2 className="text-sm font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
+            <h2 className="text-sm font-bold text-slate-900 flex items-center gap-2">
               <UserCheck className="h-4 w-4 text-indigo-600" />
               <span>Employee Attendance Breakdown</span>
             </h2>
-            <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+            <p className="text-xs text-slate-500 mt-0.5">
               Weekly Attendance & Exception Triage — identify staff meeting policy vs pending requirements.
             </p>
           </div>
@@ -391,23 +391,23 @@ export const AdminDashboard: React.FC = () => {
               placeholder="Search staff, ID, department..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-8.5 pr-3 py-1.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs outline-none focus:ring-2 focus:ring-indigo-500"
+              className="w-full pl-8.5 pr-3 py-1.5 bg-slate-50 border border-slate-200 rounded-xl text-xs outline-none focus:ring-2 focus:ring-indigo-500"
             />
           </div>
         </div>
 
         {/* Triage Exception Filter Tabs */}
-        <div className="flex flex-wrap items-center gap-1.5 bg-slate-100 dark:bg-slate-800/80 p-1.5 rounded-xl text-xs font-semibold">
+        <div className="flex flex-wrap items-center gap-1.5 bg-slate-100 p-1.5 rounded-xl text-xs font-semibold">
           <button
             onClick={() => setEmployeeFilter('ALL')}
             className={`px-3 py-1.5 rounded-lg transition flex items-center gap-1.5 ${
               employeeFilter === 'ALL'
-                ? 'bg-white dark:bg-slate-700 text-indigo-600 dark:text-indigo-400 shadow-xs'
-                : 'text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white'
+                ? 'bg-white text-indigo-600 shadow-xs'
+                : 'text-slate-600 hover:text-slate-900'
             }`}
           >
             <span>All Staff</span>
-            <span className="text-[10px] bg-slate-200 dark:bg-slate-600 px-1.5 py-0.2 rounded-full font-mono">
+            <span className="text-[10px] bg-slate-200 px-1.5 py-0.2 rounded-full font-mono">
               {report?.employees.length || 0}
             </span>
           </button>
@@ -415,13 +415,13 @@ export const AdminDashboard: React.FC = () => {
             onClick={() => setEmployeeFilter('IN_OFFICE')}
             className={`px-3 py-1.5 rounded-lg transition flex items-center gap-1.5 ${
               employeeFilter === 'IN_OFFICE'
-                ? 'bg-white dark:bg-slate-700 text-emerald-600 dark:text-emerald-400 shadow-xs font-bold'
-                : 'text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white'
+                ? 'bg-white text-emerald-600 shadow-xs font-bold'
+                : 'text-slate-600 hover:text-slate-900'
             }`}
           >
             <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
             <span>In Office</span>
-            <span className="text-[10px] bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300 px-1.5 py-0.2 rounded-full font-mono">
+            <span className="text-[10px] bg-emerald-100 text-emerald-800 px-1.5 py-0.2 rounded-full font-mono">
               {inOfficeEmployees.length}
             </span>
           </button>
@@ -429,12 +429,12 @@ export const AdminDashboard: React.FC = () => {
             onClick={() => setEmployeeFilter('BELOW_THRESHOLD')}
             className={`px-3 py-1.5 rounded-lg transition flex items-center gap-1.5 ${
               employeeFilter === 'BELOW_THRESHOLD'
-                ? 'bg-white dark:bg-slate-700 text-rose-600 dark:text-rose-400 shadow-xs font-bold'
-                : 'text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white'
+                ? 'bg-white text-rose-600 shadow-xs font-bold'
+                : 'text-slate-600 hover:text-slate-900'
             }`}
           >
             <span>Below Threshold</span>
-            <span className="text-[10px] bg-rose-100 text-rose-800 dark:bg-rose-950 dark:text-rose-300 px-1.5 py-0.2 rounded-full font-mono">
+            <span className="text-[10px] bg-rose-100 text-rose-800 px-1.5 py-0.2 rounded-full font-mono">
               {belowThresholdEmployees.length}
             </span>
           </button>
@@ -442,12 +442,12 @@ export const AdminDashboard: React.FC = () => {
             onClick={() => setEmployeeFilter('FAILED_BOTH')}
             className={`px-3 py-1.5 rounded-lg transition flex items-center gap-1.5 ${
               employeeFilter === 'FAILED_BOTH'
-                ? 'bg-white dark:bg-slate-700 text-rose-700 dark:text-rose-400 shadow-xs font-bold'
-                : 'text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white'
+                ? 'bg-white text-rose-700 shadow-xs font-bold'
+                : 'text-slate-600 hover:text-slate-900'
             }`}
           >
             <span>Failed Both</span>
-            <span className="text-[10px] bg-rose-200 text-rose-900 dark:bg-rose-900 dark:text-rose-200 px-1.5 py-0.2 rounded-full font-mono">
+            <span className="text-[10px] bg-rose-200 text-rose-900 px-1.5 py-0.2 rounded-full font-mono">
               {failedBothEmployees.length}
             </span>
           </button>
@@ -455,12 +455,12 @@ export const AdminDashboard: React.FC = () => {
             onClick={() => setEmployeeFilter('ANOMALIES')}
             className={`px-3 py-1.5 rounded-lg transition flex items-center gap-1.5 ${
               employeeFilter === 'ANOMALIES'
-                ? 'bg-white dark:bg-slate-700 text-amber-600 dark:text-amber-400 shadow-xs font-bold'
-                : 'text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white'
+                ? 'bg-white text-amber-600 shadow-xs font-bold'
+                : 'text-slate-600 hover:text-slate-900'
             }`}
           >
             <span>Anomalies</span>
-            <span className="text-[10px] bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300 px-1.5 py-0.2 rounded-full font-mono">
+            <span className="text-[10px] bg-amber-100 text-amber-800 px-1.5 py-0.2 rounded-full font-mono">
               {anomalousEmployees.length}
             </span>
           </button>
@@ -468,21 +468,21 @@ export const AdminDashboard: React.FC = () => {
             onClick={() => setEmployeeFilter('ZERO_ATTENDANCE')}
             className={`px-3 py-1.5 rounded-lg transition flex items-center gap-1.5 ${
               employeeFilter === 'ZERO_ATTENDANCE'
-                ? 'bg-white dark:bg-slate-700 text-slate-700 dark:text-slate-300 shadow-xs font-bold'
-                : 'text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white'
+                ? 'bg-white text-slate-700 shadow-xs font-bold'
+                : 'text-slate-600 hover:text-slate-900'
             }`}
           >
             <span>Zero Attendance</span>
-            <span className="text-[10px] bg-slate-200 dark:bg-slate-600 px-1.5 py-0.2 rounded-full font-mono">
+            <span className="text-[10px] bg-slate-200 px-1.5 py-0.2 rounded-full font-mono">
               {zeroAttendanceEmployees.length}
             </span>
           </button>
         </div>
 
         {/* Desktop Table View (Hidden on mobile) */}
-        <div className="hidden md:block overflow-x-auto rounded-xl border border-slate-200/80 dark:border-slate-800">
-          <table className="w-full text-xs text-left text-slate-600 dark:text-slate-300">
-            <thead className="text-[11px] uppercase bg-slate-50 dark:bg-slate-800 text-slate-500 dark:text-slate-400 border-b border-slate-200 dark:border-slate-700">
+        <div className="hidden md:block overflow-x-auto rounded-xl border border-slate-200/80">
+          <table className="w-full text-xs text-left text-slate-600">
+            <thead className="text-[11px] uppercase bg-slate-50 text-slate-500 border-b border-slate-200">
               <tr>
                 <th className="px-4 py-3 font-semibold">Employee</th>
                 <th className="px-4 py-3 font-semibold">Department</th>
@@ -493,7 +493,7 @@ export const AdminDashboard: React.FC = () => {
                 <th className="px-4 py-3 font-semibold text-right">Action</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+            <tbody className="divide-y divide-slate-100">
               {filteredEmployees.length === 0 ? (
                 <tr>
                   <td colSpan={7} className="p-8 text-center">
@@ -506,7 +506,7 @@ export const AdminDashboard: React.FC = () => {
                         setEmployeeFilter('ALL');
                         setSearchQuery('');
                       }}
-                      className="mt-3 px-3 py-1.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 dark:bg-indigo-950 dark:hover:bg-indigo-900 dark:text-indigo-300 text-xs font-semibold rounded-lg transition"
+                      className="mt-3 px-3 py-1.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 text-xs font-semibold rounded-lg transition"
                     >
                       Clear Exception Filters
                     </button>
@@ -524,21 +524,21 @@ export const AdminDashboard: React.FC = () => {
                       key={emp.employee_id}
                       className={`transition ${
                         meta?.inOfficeNow
-                          ? 'bg-emerald-50/20 dark:bg-emerald-950/10'
+                          ? 'bg-emerald-50/20'
                           : meta?.hasZeroDurationAnomaly
-                          ? 'bg-amber-50/30 dark:bg-amber-950/10'
+                          ? 'bg-amber-50/30'
                           : hasZero
-                          ? 'bg-slate-50/60 dark:bg-slate-800/40'
+                          ? 'bg-slate-50/60'
                           : isUnder
-                          ? 'bg-rose-50/20 dark:bg-rose-950/10'
-                          : 'hover:bg-slate-50/60 dark:hover:bg-slate-800/40'
+                          ? 'bg-rose-50/20'
+                          : 'hover:bg-slate-50/60'
                       }`}
                     >
                       <td className="px-4 py-3.5">
-                        <div className="font-bold text-slate-900 dark:text-slate-100">{emp.full_name}</div>
+                        <div className="font-bold text-slate-900">{emp.full_name}</div>
                         <div className="text-[11px] text-slate-400 font-mono">{emp.employee_id}</div>
                       </td>
-                      <td className="px-4 py-3.5 font-medium text-slate-700 dark:text-slate-300">
+                      <td className="px-4 py-3.5 font-medium text-slate-700">
                         {emp.department}
                       </td>
                       <td className="px-4 py-3.5">
@@ -548,7 +548,7 @@ export const AdminDashboard: React.FC = () => {
                             In Office Now
                           </span>
                         ) : meta?.hasCompletedToday ? (
-                          <span className="inline-flex items-center gap-1 text-[11px] font-medium text-slate-600 dark:text-slate-300">
+                          <span className="inline-flex items-center gap-1 text-[11px] font-medium text-slate-600">
                             Clocked Out Today
                           </span>
                         ) : (
@@ -557,7 +557,7 @@ export const AdminDashboard: React.FC = () => {
                       </td>
                       <td className="px-4 py-3.5">
                         <div className="flex items-center gap-1.5">
-                          <span className="font-bold text-slate-900 dark:text-slate-100">{emp.total_attended_days}</span>
+                          <span className="font-bold text-slate-900">{emp.total_attended_days}</span>
                           <span className="text-slate-400 font-normal">/ 3 days</span>
                           {policy.meetsDays ? (
                             <span className="text-[10px] font-bold text-emerald-600 bg-emerald-50 px-1 rounded border border-emerald-200">MET</span>
@@ -568,7 +568,7 @@ export const AdminDashboard: React.FC = () => {
                       </td>
                       <td className="px-4 py-3.5">
                         <div className="flex items-center gap-1.5">
-                          <span className="font-bold text-slate-900 dark:text-slate-100">{emp.total_office_hours.toFixed(1)}</span>
+                          <span className="font-bold text-slate-900">{emp.total_office_hours.toFixed(1)}</span>
                           <span className="text-slate-400 font-normal">/ 15.0h</span>
                           {policy.meetsHours ? (
                             <span className="text-[10px] font-bold text-emerald-600 bg-emerald-50 px-1 rounded border border-emerald-200">MET</span>
@@ -600,7 +600,7 @@ export const AdminDashboard: React.FC = () => {
                       <td className="px-4 py-3.5 text-right">
                         <Link
                           to={`/reports?period=weekly&employee_id=${emp.employee_id}`}
-                          className="px-2.5 py-1 rounded-lg border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 text-[11px] font-semibold inline-flex items-center gap-1 transition"
+                          className="px-2.5 py-1 rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-100 text-[11px] font-semibold inline-flex items-center gap-1 transition"
                           title="View weekly breakdown in Central Reports"
                         >
                           <span>Report</span>
@@ -618,7 +618,7 @@ export const AdminDashboard: React.FC = () => {
         {/* Mobile Responsive Cards View (Shown on <md) */}
         <div className="md:hidden space-y-3">
           {filteredEmployees.length === 0 ? (
-            <div className="p-6 bg-slate-50 dark:bg-slate-800 rounded-xl text-center">
+            <div className="p-6 bg-slate-50 rounded-xl text-center">
               <EmptyState
                 title="No employees match exception filter"
                 description="All evaluated staff meet or exceed the selected threshold criteria."
@@ -628,7 +628,7 @@ export const AdminDashboard: React.FC = () => {
                   setEmployeeFilter('ALL');
                   setSearchQuery('');
                 }}
-                className="mt-3 px-3 py-1.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 dark:bg-indigo-950 dark:hover:bg-indigo-900 dark:text-indigo-300 text-xs font-semibold rounded-lg transition"
+                className="mt-3 px-3 py-1.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 text-xs font-semibold rounded-lg transition"
               >
                 Clear Exception Filters
               </button>
@@ -642,41 +642,41 @@ export const AdminDashboard: React.FC = () => {
               return (
                 <div
                   key={emp.employee_id}
-                  className="rounded-xl border border-slate-200 dark:border-slate-800 p-4 bg-white dark:bg-slate-900 shadow-2xs space-y-3"
+                  className="rounded-xl border border-slate-200 p-4 bg-white shadow-2xs space-y-3"
                 >
                   <div className="flex items-start justify-between gap-2">
                     <div>
-                      <h3 className="font-bold text-sm text-slate-900 dark:text-slate-100">{emp.full_name}</h3>
+                      <h3 className="font-bold text-sm text-slate-900">{emp.full_name}</h3>
                       <p className="text-xs text-slate-500 font-mono">{emp.employee_id} • {emp.department}</p>
                     </div>
                     <StatusBadge status={emp.overall_compliance || (isUnder ? 'NON_COMPLIANT' : 'COMPLIANT')} />
                   </div>
 
                   {meta?.hasZeroDurationAnomaly && (
-                    <div className="text-[11px] font-semibold text-amber-800 bg-amber-50 dark:bg-amber-950 dark:text-amber-300 px-2 py-1 rounded-md border border-amber-200 dark:border-amber-800 flex items-center gap-1.5">
+                    <div className="text-[11px] font-semibold text-amber-800 bg-amber-50 px-2 py-1 rounded-md border border-amber-200 flex items-center gap-1.5">
                       <AlertCircle className="w-3.5 h-3.5 text-amber-600 shrink-0" />
                       <span>Zero-duration record flagged for review</span>
                     </div>
                   )}
 
-                  <div className="grid grid-cols-2 gap-2 text-xs pt-1 border-t border-slate-100 dark:border-slate-800">
+                  <div className="grid grid-cols-2 gap-2 text-xs pt-1 border-t border-slate-100">
                     <div>
                       <span className="text-slate-500 block text-[11px]">Days Attended</span>
-                      <strong className="text-slate-900 dark:text-slate-100">{emp.total_attended_days} / 3 days</strong>
+                      <strong className="text-slate-900">{emp.total_attended_days} / 3 days</strong>
                       <span className="block text-[10px] text-slate-400 mt-0.5">
                         {policy.meetsDays ? 'Target Met' : `${policy.daysRemaining} more needed`}
                       </span>
                     </div>
                     <div>
                       <span className="text-slate-500 block text-[11px]">Total Office Hours</span>
-                      <strong className="text-slate-900 dark:text-slate-100">{emp.total_office_hours.toFixed(1)} / 15.0 hrs</strong>
+                      <strong className="text-slate-900">{emp.total_office_hours.toFixed(1)} / 15.0 hrs</strong>
                       <span className="block text-[10px] text-slate-400 mt-0.5">
                         {policy.meetsHours ? 'Target Met' : `${policy.hoursRemaining.toFixed(1)}h needed`}
                       </span>
                     </div>
                   </div>
 
-                  <div className="flex items-center justify-between pt-2 border-t border-slate-100 dark:border-slate-800 text-xs">
+                  <div className="flex items-center justify-between pt-2 border-t border-slate-100 text-xs">
                     <div>
                       {meta?.inOfficeNow ? (
                         <span className="inline-flex items-center gap-1 font-bold text-emerald-700 text-[11px]">
@@ -705,28 +705,28 @@ export const AdminDashboard: React.FC = () => {
       </div>
 
       {/* Rolling 4-Week Health Scores Section */}
-      <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-xs overflow-hidden">
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between border-b border-slate-200 dark:border-slate-800 px-6 py-4 gap-3">
+      <div className="rounded-2xl border border-slate-200 bg-white shadow-xs overflow-hidden">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between border-b border-slate-200 px-6 py-4 gap-3">
           <div className="flex items-center gap-2">
             <Activity className="h-4 w-4 text-indigo-600" />
             <div>
-              <h2 className="text-sm font-bold text-slate-900 dark:text-slate-100">
+              <h2 className="text-sm font-bold text-slate-900">
                 Continuous Compliance Health Score (Rolling 4-Week History)
               </h2>
-              <p className="text-xs text-slate-500 dark:text-slate-400">
+              <p className="text-xs text-slate-500">
                 Automated rolling health scores per employee to identify chronic under-hours patterns.
               </p>
             </div>
           </div>
 
           <div className="flex items-center gap-3">
-            <div className="flex items-center gap-1 bg-slate-100 dark:bg-slate-800 p-1 rounded-xl text-xs font-semibold">
+            <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-xl text-xs font-semibold">
               <button
                 onClick={() => setHealthFilter('ALL')}
                 className={`px-2.5 py-1 rounded-lg transition ${
                   healthFilter === 'ALL'
-                    ? 'bg-white dark:bg-slate-700 text-indigo-600 dark:text-indigo-400 shadow-xs'
-                    : 'text-slate-600 dark:text-slate-400'
+                    ? 'bg-white text-indigo-600 shadow-xs'
+                    : 'text-slate-600'
                 }`}
               >
                 All Scores
@@ -735,8 +735,8 @@ export const AdminDashboard: React.FC = () => {
                 onClick={() => setHealthFilter('AT_RISK_ONLY')}
                 className={`px-2.5 py-1 rounded-lg transition ${
                   healthFilter === 'AT_RISK_ONLY'
-                    ? 'bg-white dark:bg-slate-700 text-rose-600 dark:text-rose-400 shadow-xs font-bold'
-                    : 'text-slate-600 dark:text-slate-400'
+                    ? 'bg-white text-rose-600 shadow-xs font-bold'
+                    : 'text-slate-600'
                 }`}
               >
                 At Risk / Critical
@@ -752,7 +752,7 @@ export const AdminDashboard: React.FC = () => {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 p-6 bg-slate-50/40 dark:bg-slate-950/20">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 p-6 bg-slate-50/40">
           {filteredHealthScores.length === 0 ? (
             <div className="col-span-full py-8 text-center">
               <EmptyState
@@ -767,24 +767,24 @@ export const AdminDashboard: React.FC = () => {
               return (
                 <div
                   key={score.employee_id}
-                  className={`rounded-xl border p-4 bg-white dark:bg-slate-900 shadow-2xs transition flex flex-col justify-between ${
+                  className={`rounded-xl border p-4 bg-white shadow-2xs transition flex flex-col justify-between ${
                     score.chronic_issue
-                      ? 'border-amber-300 ring-1 ring-amber-100 dark:border-amber-800 dark:ring-amber-900/30'
-                      : 'border-slate-200 dark:border-slate-800'
+                      ? 'border-amber-300 ring-1 ring-amber-100'
+                      : 'border-slate-200'
                   }`}
                 >
                   <div>
                     <div className="flex items-center justify-between mb-2">
-                      <span className="text-xs font-bold text-slate-900 dark:text-slate-100 truncate">
+                      <span className="text-xs font-bold text-slate-900 truncate">
                         {score.employee_id}
                       </span>
                       <span
                         className={`text-[10px] font-bold px-2 py-0.5 rounded uppercase tracking-wider ${
                           isCritical
-                            ? 'bg-rose-100 text-rose-800 dark:bg-rose-950 dark:text-rose-300'
+                            ? 'bg-rose-100 text-rose-800'
                             : isAtRisk
-                            ? 'bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300'
-                            : 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300'
+                            ? 'bg-amber-100 text-amber-800'
+                            : 'bg-emerald-100 text-emerald-800'
                         }`}
                       >
                         {score.health_rating}
@@ -792,13 +792,13 @@ export const AdminDashboard: React.FC = () => {
                     </div>
 
                     <div className="space-y-1.5 my-3">
-                      <div className="flex justify-between text-[11px] text-slate-600 dark:text-slate-400">
+                      <div className="flex justify-between text-[11px] text-slate-600">
                         <span>4-Week Compliance</span>
-                        <span className="font-bold text-slate-900 dark:text-slate-100">
+                        <span className="font-bold text-slate-900">
                           {score.compliant_weeks} / {score.total_evaluated_weeks} wks
                         </span>
                       </div>
-                      <div className="w-full bg-slate-100 dark:bg-slate-800 rounded-full h-1.5 overflow-hidden">
+                      <div className="w-full bg-slate-100 rounded-full h-1.5 overflow-hidden">
                         <div
                           className={`h-1.5 rounded-full ${
                             score.health_score >= 75 ? 'bg-emerald-500' : 'bg-rose-500'
@@ -809,10 +809,10 @@ export const AdminDashboard: React.FC = () => {
                     </div>
                   </div>
 
-                  <div className="pt-2 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between text-[11px] text-slate-500">
+                  <div className="pt-2 border-t border-slate-100 flex items-center justify-between text-[11px] text-slate-500">
                     <span>Score: {score.health_score.toFixed(0)}%</span>
                     {score.chronic_issue && (
-                      <span className="text-[10px] font-bold text-amber-700 bg-amber-50 dark:bg-amber-950 dark:text-amber-300 px-1.5 py-0.2 rounded border border-amber-200 dark:border-amber-800">
+                      <span className="text-[10px] font-bold text-amber-700 bg-amber-50 px-1.5 py-0.2 rounded border border-amber-200">
                         Chronic Issue
                       </span>
                     )}

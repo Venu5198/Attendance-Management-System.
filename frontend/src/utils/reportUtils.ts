@@ -91,7 +91,7 @@ export const classifyDailyRecord = (day: DailyAttendanceItem): DayClassification
       return {
         state: 'QUALIFYING',
         label: 'Attended (Qualifying)',
-        badgeColor: 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300',
+        badgeColor: 'bg-emerald-50 text-emerald-800 border border-emerald-200',
         borderColor: 'border-emerald-300',
         isQualifying: true,
         isAnomaly: false,
@@ -101,7 +101,7 @@ export const classifyDailyRecord = (day: DailyAttendanceItem): DayClassification
     return {
       state: 'ZERO_DURATION',
       label: '0.0h Logged (Non-qualifying)',
-      badgeColor: 'bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300',
+      badgeColor: 'bg-amber-50 text-amber-800 border border-amber-200',
       borderColor: 'border-amber-300',
       isQualifying: false,
       isAnomaly: true,
@@ -114,7 +114,7 @@ export const classifyDailyRecord = (day: DailyAttendanceItem): DayClassification
       return {
         state: 'INCOMPLETE_STALE',
         label: 'Incomplete / Stale Session',
-        badgeColor: 'bg-rose-100 text-rose-800 dark:bg-rose-900/40 dark:text-rose-300',
+        badgeColor: 'bg-rose-50 text-rose-800 border border-rose-200',
         borderColor: 'border-rose-300',
         isQualifying: false,
         isAnomaly: true,
@@ -124,7 +124,7 @@ export const classifyDailyRecord = (day: DailyAttendanceItem): DayClassification
     return {
       state: 'IN_PROGRESS',
       label: 'In Progress (Active Today)',
-      badgeColor: 'bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300',
+      badgeColor: 'bg-blue-50 text-blue-800 border border-blue-200',
       borderColor: 'border-blue-300',
       isQualifying: false,
       isAnomaly: false,
@@ -134,7 +134,7 @@ export const classifyDailyRecord = (day: DailyAttendanceItem): DayClassification
   return {
     state: 'NOT_ATTENDED',
     label: 'Not Attended',
-    badgeColor: 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400',
+    badgeColor: 'bg-slate-100 text-slate-600 border border-slate-200',
     borderColor: 'border-slate-200',
     isQualifying: false,
     isAnomaly: false,
