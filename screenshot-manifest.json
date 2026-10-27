@@ -1,0 +1,206 @@
+[
+  {
+    "filename": "01-admin-dashboard-populated-desktop.png",
+    "page": "Admin Dashboard",
+    "role": "ADMIN",
+    "url": "/dashboard",
+    "viewport": {
+      "width": 1440,
+      "height": 1000
+    },
+    "target": "Company Overview & Compliance Main View",
+    "state": "POPULATED_DASHBOARD",
+    "notes": "Admin dashboard showing 5 primary stat cards (including live in-office counter), weekly policy baseline summary, exception triage table, and 4-week rolling health scores.",
+    "path": "artifacts/ui-audit-phase3/01-admin-dashboard-populated-desktop.png",
+    "timestamp": "2026-10-25T19:14:46.393Z",
+    "status": "CAPTURED",
+    "fileSize": 148775
+  },
+  {
+    "filename": "02-admin-dashboard-exceptions-triage-desktop.png",
+    "page": "Admin Dashboard",
+    "role": "ADMIN",
+    "url": "/dashboard",
+    "viewport": {
+      "width": 1440,
+      "height": 1000
+    },
+    "target": "Below Threshold Exception Triage Filter",
+    "state": "FILTERED_BELOW_THRESHOLD",
+    "notes": "Admin dashboard with Below Threshold triage tab active, isolating staff with under 3 days or under 15 hours.",
+    "path": "artifacts/ui-audit-phase3/02-admin-dashboard-exceptions-triage-desktop.png",
+    "timestamp": "2026-10-25T19:14:46.867Z",
+    "status": "CAPTURED",
+    "fileSize": 147883
+  },
+  {
+    "filename": "03-admin-dashboard-anomalies-desktop.png",
+    "page": "Admin Dashboard",
+    "role": "ADMIN",
+    "url": "/dashboard",
+    "viewport": {
+      "width": 1440,
+      "height": 1000
+    },
+    "target": "Anomalies and Zero Duration Triage",
+    "state": "FILTERED_ANOMALIES",
+    "notes": "Admin dashboard isolating anomalous records, highlighting zero-duration non-qualifying sessions.",
+    "path": "artifacts/ui-audit-phase3/03-admin-dashboard-anomalies-desktop.png",
+    "timestamp": "2026-10-25T19:14:47.332Z",
+    "status": "CAPTURED",
+    "fileSize": 129802
+  },
+  {
+    "filename": "04-admin-dashboard-empty-state-desktop.png",
+    "page": "Admin Dashboard",
+    "role": "ADMIN",
+    "url": "/dashboard",
+    "viewport": {
+      "width": 1440,
+      "height": 1000
+    },
+    "target": "Empty State Search Filtering",
+    "state": "EMPTY_SEARCH_STATE",
+    "notes": "Admin dashboard showing clean, user-friendly EmptyState component when no records match filter criteria.",
+    "path": "artifacts/ui-audit-phase3/04-admin-dashboard-empty-state-desktop.png",
+    "timestamp": "2026-10-25T19:14:47.761Z",
+    "status": "CAPTURED",
+    "fileSize": 130136
+  },
+  {
+    "filename": "05-reports-populated-weekly-desktop.png",
+    "page": "Central Attendance Reports",
+    "role": "ADMIN",
+    "url": "/reports",
+    "viewport": {
+      "width": 1440,
+      "height": 1000
+    },
+    "target": "Central Reports Weekly View with Totals Footer",
+    "state": "POPULATED_REPORTS_WEEKLY",
+    "notes": "Central attendance reports page displaying quick presets (Today, This Week, This Month, Reset), summary cards, and full table with company totals footer.",
+    "path": "artifacts/ui-audit-phase3/05-reports-populated-weekly-desktop.png",
+    "timestamp": "2026-10-25T19:14:49.447Z",
+    "status": "CAPTURED",
+    "fileSize": 128984
+  },
+  {
+    "filename": "05b-reports-oct24-week-desktop.png",
+    "page": "Central Attendance Reports",
+    "role": "ADMIN",
+    "url": "/reports",
+    "viewport": {
+      "width": 1440,
+      "height": 1000
+    },
+    "target": "Central Reports Oct 19-25 Historical Week",
+    "state": "HISTORICAL_WEEK_REPORTS",
+    "notes": "Central attendance reports for week 2026-10-19 to 2026-10-25 displaying populated attendance records for Alice Chen (EMP001) and Bob Kumar (EMP002).",
+    "path": "artifacts/ui-audit-phase3/05b-reports-oct24-week-desktop.png",
+    "timestamp": "2026-10-25T19:14:50.479Z",
+    "status": "CAPTURED",
+    "fileSize": 135206
+  },
+  {
+    "filename": "06-reports-zero-duration-expanded-desktop.png",
+    "page": "Central Attendance Reports",
+    "role": "ADMIN",
+    "url": "/reports",
+    "viewport": {
+      "width": 1440,
+      "height": 1000
+    },
+    "target": "Expanded Daily Breakdown: Zero Duration & Qualifying",
+    "state": "ZERO_DURATION_AND_QUALIFYING_BREAKDOWN",
+    "notes": "Expanded daily logs breakdown showing Oct 19 as Attended (Qualifying) in emerald green and Oct 24 as 0.0h Logged (Non-qualifying) in amber with AlertCircle.",
+    "path": "artifacts/ui-audit-phase3/06-reports-zero-duration-expanded-desktop.png",
+    "timestamp": "2026-10-25T19:14:51.423Z",
+    "status": "CAPTURED",
+    "fileSize": 136885
+  },
+  {
+    "filename": "07-reports-empty-state-desktop.png",
+    "page": "Central Attendance Reports",
+    "role": "ADMIN",
+    "url": "/reports",
+    "viewport": {
+      "width": 1440,
+      "height": 1000
+    },
+    "target": "Reports Empty Search State",
+    "state": "EMPTY_REPORTS_STATE",
+    "notes": "Clean empty state illustration and message displayed when report search filter yields zero matching staff.",
+    "path": "artifacts/ui-audit-phase3/07-reports-empty-state-desktop.png",
+    "timestamp": "2026-10-25T19:14:51.987Z",
+    "status": "CAPTURED",
+    "fileSize": 103456
+  },
+  {
+    "filename": "08-admin-dashboard-tablet.png",
+    "page": "Admin Dashboard",
+    "role": "ADMIN",
+    "url": "/dashboard",
+    "viewport": {
+      "width": 768,
+      "height": 1024
+    },
+    "target": "Tablet Admin Dashboard Layout",
+    "state": "TABLET_DASHBOARD",
+    "notes": "Responsive tablet view of Admin Dashboard displaying 2-column KPI grid and responsive triage table without horizontal overflow.",
+    "path": "artifacts/ui-audit-phase3/08-admin-dashboard-tablet.png",
+    "timestamp": "2026-10-25T19:14:56.071Z",
+    "status": "CAPTURED",
+    "fileSize": 95693
+  },
+  {
+    "filename": "09-reports-weekly-tablet.png",
+    "page": "Central Attendance Reports",
+    "role": "ADMIN",
+    "url": "/reports",
+    "viewport": {
+      "width": 768,
+      "height": 1024
+    },
+    "target": "Tablet Reports Layout",
+    "state": "TABLET_REPORTS",
+    "notes": "Responsive tablet layout for Central Attendance Reports with accessible controls and formatted table.",
+    "path": "artifacts/ui-audit-phase3/09-reports-weekly-tablet.png",
+    "timestamp": "2026-10-25T19:14:57.535Z",
+    "status": "CAPTURED",
+    "fileSize": 95964
+  },
+  {
+    "filename": "10-admin-dashboard-mobile.png",
+    "page": "Admin Dashboard",
+    "role": "ADMIN",
+    "url": "/dashboard",
+    "viewport": {
+      "width": 390,
+      "height": 844
+    },
+    "target": "Mobile Admin Dashboard Responsive Cards",
+    "state": "MOBILE_DASHBOARD_CARDS",
+    "notes": "Mobile presentation of Admin Dashboard replacing table with high-density, touch-friendly employee triage cards with direct report links.",
+    "path": "artifacts/ui-audit-phase3/10-admin-dashboard-mobile.png",
+    "timestamp": "2026-10-25T19:15:02.301Z",
+    "status": "CAPTURED",
+    "fileSize": 50014
+  },
+  {
+    "filename": "11-reports-mobile-cards-mobile.png",
+    "page": "Central Attendance Reports",
+    "role": "ADMIN",
+    "url": "/reports",
+    "viewport": {
+      "width": 390,
+      "height": 844
+    },
+    "target": "Mobile Reports Responsive Cards & Expanded Logs",
+    "state": "MOBILE_REPORTS_CARDS",
+    "notes": "Mobile Central Reports displaying responsive employee cards and expanded daily logs with IST timestamps.",
+    "path": "artifacts/ui-audit-phase3/11-reports-mobile-cards-mobile.png",
+    "timestamp": "2026-10-25T19:15:04.260Z",
+    "status": "CAPTURED",
+    "fileSize": 46032
+  }
+]

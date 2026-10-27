@@ -12,7 +12,7 @@ from app.schemas.leave import LeaveRequestCreate, LeaveType
 from app.schemas.regularization import RegularizationRequestCreate
 from app.services.leave_service import LeaveService
 from app.services.regularization_service import RegularizationService
-from app.utils.time_utils import get_company_tz, get_week_boundaries, get_work_date, now_utc
+from app.utils.time_utils import get_company_tz, get_week_boundaries, get_work_date, now_local, now_utc
 
 
 class AssistantService:
@@ -472,8 +472,7 @@ class AssistantService:
                 suggestions=["Who is in the office today?", "Who is non-compliant?"],
             )
 
-        now = now_utc()
-        current_date = now.date()
+        current_date = now_local().date()
         mon, sun = get_week_boundaries(current_date)
         mon_str, sun_str = mon.isoformat(), sun.isoformat()
 

@@ -150,7 +150,7 @@ export const RegularizationReviewPanel: React.FC = () => {
         <div>
           <div className="flex items-center gap-2">
             <Sliders className="w-5 h-5 text-indigo-600" />
-            <h2 className="text-xl font-bold text-slate-900 tracking-tight">ADJUSTMENTS</h2>
+            <h2 className="text-xl font-bold text-slate-900 tracking-tight">Attendance Regularization Approvals</h2>
           </div>
           <p className="text-xs text-slate-500 mt-0.5">
             Manual time and balance correction entries in the attendance ledger

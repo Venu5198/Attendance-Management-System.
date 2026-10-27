@@ -2,6 +2,7 @@ import React from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './auth/AuthContext';
 import { AssistantProvider } from './context/AssistantContext';
+import { ToastProvider } from './context/ToastContext';
 import { ProtectedRoute } from './auth/ProtectedRoute';
 import { RoleProtectedRoute } from './auth/RoleProtectedRoute';
 import { AppLayout } from './components/layout/AppLayout';
@@ -28,9 +29,10 @@ export const App: React.FC = () => {
   return (
     <BrowserRouter>
       <AuthProvider>
-        <AssistantProvider>
-          <Routes>
-            <Route path="/login" element={<LoginPage />} />
+        <ToastProvider>
+          <AssistantProvider>
+            <Routes>
+              <Route path="/login" element={<LoginPage />} />
 
           {/* Protected Routes */}
           <Route
@@ -44,8 +46,10 @@ export const App: React.FC = () => {
             <Route index element={<Navigate to="/dashboard" replace />} />
             <Route path="dashboard" element={<DashboardRouter />} />
             <Route path="attendance" element={<AttendancePage />} />
+            <Route path="reports" element={<ReportsPage />} />
             <Route path="leaves" element={<LeavesPage />} />
             <Route path="profile" element={<ProfilePage />} />
+            <Route path="dashboard/employee" element={<Navigate to="/dashboard" replace />} />
 
             {/* Admin-only Routes */}
             <Route
@@ -53,14 +57,6 @@ export const App: React.FC = () => {
               element={
                 <RoleProtectedRoute allowedRoles={['ADMIN']}>
                   <EmployeesPage />
-                </RoleProtectedRoute>
-              }
-            />
-            <Route
-              path="reports"
-              element={
-                <RoleProtectedRoute allowedRoles={['ADMIN']}>
-                  <ReportsPage />
                 </RoleProtectedRoute>
               }
             />
@@ -76,8 +72,9 @@ export const App: React.FC = () => {
 
           {/* Catch-all */}
           <Route path="*" element={<Navigate to="/dashboard" replace />} />
-        </Routes>
-        </AssistantProvider>
+          </Routes>
+          </AssistantProvider>
+        </ToastProvider>
       </AuthProvider>
     </BrowserRouter>
   );

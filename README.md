@@ -16,7 +16,21 @@ Compliance requires meeting **both** thresholds in every Monday–Sunday calenda
 
 ---
 
-## 2. Architecture & Monorepo Structure
+## 2. Application Showcase
+
+| Admin Dashboard | Central Reports & Analytics |
+| :---: | :---: |
+| ![Admin Dashboard](docs/images/admin-dashboard.png) | ![Central Reports](docs/images/central-reports.png) |
+| *Organization-wide attendance, exception triage, and policy progress* | *Department breakdown, weekly compliance status, and date range filters* |
+
+| Employee Attendance Console | Policy Compliance & Anomaly Flags |
+| :---: | :---: |
+| ![Attendance Console](docs/images/attendance-console.png) | ![Anomaly Warning](docs/images/anomaly-warning.png) |
+| *Real-time session timer, multi-punch check-in/out, and daily history* | *High-visibility duration badges and presentation anomaly triage (<0.05h)* |
+
+---
+
+## 3. Architecture & Monorepo Structure
 
 ```
 Attendance management/
@@ -38,7 +52,7 @@ Attendance management/
 
 ---
 
-## 3. Technology Stack
+## 4. Technology Stack
 
 - **Backend:** Python 3.12, FastAPI, Pydantic v2, Motor (Async PyMongo), MongoDB 7.0, python-jose (JWT), APScheduler, Pytest.
 - **Frontend:** React 19, TypeScript, Vite, Tailwind CSS, Axios, Lucide React, React Router v7, Nginx.
@@ -46,7 +60,7 @@ Attendance management/
 
 ---
 
-## 4. Quick Start (Docker Compose - Recommended)
+## 5. Quick Start (Docker Compose - Recommended)
 
 ### 1. Launch Services
 Run the full stack with automatic networking and health checks:
@@ -74,7 +88,7 @@ docker exec attendance_backend python scripts/seed_data.py
 
 ---
 
-## 5. Local Development (Without Docker)
+## 6. Local Development (Without Docker)
 
 ### Backend
 ```bash
@@ -94,7 +108,7 @@ npm run dev
 
 ---
 
-## 6. Environment Variables (`.env`)
+## 7. Environment Variables (`.env`)
 
 | Variable | Default Value | Description |
 | :--- | :--- | :--- |
@@ -111,7 +125,7 @@ npm run dev
 
 ---
 
-## 7. Security & Role-Based Access Control (RBAC)
+## 8. Security & Role-Based Access Control (RBAC)
 
 - **Role Segregation:** Strict separation between `ADMIN` and `EMPLOYEE`.
 - **Route Guards:** Frontend protected routes dynamically reject unauthorized role access.
@@ -120,7 +134,7 @@ npm run dev
 
 ---
 
-## 8. Complete Testing Suite
+## 9. Complete Testing Suite
 
 The platform is covered by 5 distinct testing tiers:
 
@@ -160,7 +174,7 @@ docker exec attendance_backend bandit -r app -ll
 
 ---
 
-## 9. Continuous Integration (GitHub Actions)
+## 10. Continuous Integration (GitHub Actions)
 
 The repository includes a comprehensive CI pipeline in `.github/workflows/ci.yml` that runs automatically on push and pull request to `master`/`main`:
 1. **`backend-ci`:** Runs Ruff linter, Bandit security scanner, and Pytest suite with code coverage on MongoDB 7.0 container.

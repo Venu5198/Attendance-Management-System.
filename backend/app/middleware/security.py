@@ -7,17 +7,25 @@ from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.requests import Request
 from starlette.responses import Response
 
+from uuid import uuid4
+
 logger = logging.getLogger(__name__)
 
 
 class SecurityHeadersMiddleware(BaseHTTPMiddleware):
     """
-    Injects hardened security headers into all HTTP responses.
-    Mitigates XSS, clickjacking, MIME-sniffing, and SSL stripping.
+    Injects hardened security headers and request correlation IDs into all HTTP responses.
+    Mitigates XSS, clickjacking, MIME-sniffing, and SSL stripping while enabling end-to-end tracing.
     """
 
     async def dispatch(self, request: Request, call_next) -> Response:
+        request_id = request.headers.get("X-Request-ID") or str(uuid4())
+        request.state.request_id = request_id
+
         response: Response = await call_next(request)
+
+        # Request Correlation Header
+        response.headers["X-Request-ID"] = request_id
 
         # Standard Security Headers
         response.headers["X-Content-Type-Options"] = "nosniff"

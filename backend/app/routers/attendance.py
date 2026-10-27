@@ -1,5 +1,6 @@
 """Attendance recording and lookup API routes."""
 
+from datetime import datetime
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
@@ -10,6 +11,7 @@ from app.database import get_database
 from app.dependencies import get_current_user, require_admin, verify_employee_ownership
 from app.schemas.attendance import (
     AttendanceRecordResponse,
+    AttendanceTodayResponse,
     CheckInResponse,
     CheckOutResponse,
 )
@@ -31,6 +33,9 @@ class AttendanceActionRequest(BaseModel):
     client_ip: str | None = None
     latitude: float | None = None
     longitude: float | None = None
+    timestamp: datetime | None = None
+    check_in_time: datetime | None = None
+    check_out_time: datetime | None = None
 
 
 def resolve_employee_id(current_user: dict, requested_emp_id: str | None) -> str:
@@ -76,7 +81,7 @@ async def check_in(
 ):
     """
     Record office check-in.
-    The entry timestamp is generated on the server using UTC to prevent manipulation.
+    The entry timestamp is generated on the server using UTC to prevent manipulation (or explicit timestamp if supplied).
     For remote work exceptions, client IP and geolocation are validated against approved boundaries.
     """
     req_eid = body.employee_id if body else None
@@ -88,10 +93,17 @@ async def check_in(
     )
     lat = body.latitude if body else None
     lng = body.longitude if body else None
+    ts = (body.timestamp or body.check_in_time) if body else None
 
     tenant_id = current_user.get("tenant_id", "default")
     service = AttendanceService(db, tenant_id=tenant_id)
-    return await service.check_in(target_emp_id, client_ip=remote_ip, latitude=lat, longitude=lng)
+    return await service.check_in(
+        target_emp_id,
+        client_ip=remote_ip,
+        latitude=lat,
+        longitude=lng,
+        timestamp=ts,
+    )
 
 
 @router.post(
@@ -110,15 +122,17 @@ async def check_out(
     """
     req_eid = body.employee_id if body else None
     target_emp_id = resolve_employee_id(current_user, req_eid)
+    ts = (body.timestamp or body.check_out_time) if body else None
+
     tenant_id = current_user.get("tenant_id", "default")
     service = AttendanceService(db, tenant_id=tenant_id)
-    return await service.check_out(target_emp_id)
+    return await service.check_out(target_emp_id, timestamp=ts)
 
 
 @router.get(
     "/today",
-    response_model=AttendanceRecordResponse,
-    summary="Get today's attendance status for current employee",
+    response_model=AttendanceTodayResponse,
+    summary="Get today's attendance status and multi-session summary for employee",
 )
 async def get_today_status(
     current_user: Annotated[dict, Depends(get_current_user)],
@@ -130,6 +144,25 @@ async def get_today_status(
     tenant_id = current_user.get("tenant_id", "default")
     service = AttendanceService(db, tenant_id=tenant_id)
     return await service.get_today_status(target_emp_id)
+
+
+@router.get(
+    "/history",
+    response_model=list[AttendanceRecordResponse],
+    summary="Get attendance history for current employee or specified employee",
+)
+async def get_attendance_history(
+    current_user: Annotated[dict, Depends(get_current_user)],
+    db: Annotated[AsyncDatabase, Depends(get_database)],
+    employee_id: str | None = Query(None, description="Employee ID (Admin only or self)"),
+    start_date: str | None = Query(None, description="Start date (YYYY-MM-DD)"),
+    end_date: str | None = Query(None, description="End date (YYYY-MM-DD)"),
+):
+    """Retrieve historical attendance records. Restricted to Admin or the employee."""
+    target_emp_id = resolve_employee_id(current_user, employee_id)
+    tenant_id = current_user.get("tenant_id", "default")
+    service = AttendanceService(db, tenant_id=tenant_id)
+    return await service.get_employee_history(target_emp_id, start_date=start_date, end_date=end_date)
 
 
 @router.get(

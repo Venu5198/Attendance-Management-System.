@@ -88,6 +88,7 @@ async def ensure_indexes(db: AsyncDatabase) -> None:
         ("users", "idx_user_email_unique"),
         ("users", "idx_user_emp_id_unique"),
         ("attendance", "idx_attendance_emp_date_unique"),
+        ("attendance", "idx_tenant_attendance_emp_date_unique"),
         ("policy_violations", "idx_violations_emp_week_unique"),
         ("holidays", "idx_holiday_date_unique"),
     ]
@@ -138,8 +139,13 @@ async def ensure_indexes(db: AsyncDatabase) -> None:
     # 3. Attendance collection indexes (Scoped by tenant_id)
     await db.attendance.create_index(
         [("tenant_id", ASCENDING), ("employee_id", ASCENDING), ("work_date", ASCENDING)],
+        name="idx_tenant_attendance_emp_date",
+    )
+    await db.attendance.create_index(
+        [("tenant_id", ASCENDING), ("employee_id", ASCENDING)],
         unique=True,
-        name="idx_tenant_attendance_emp_date_unique",
+        partialFilterExpression={"attendance_status": "IN_PROGRESS"},
+        name="idx_tenant_attendance_active_unique",
     )
     await db.attendance.create_index(
         [("tenant_id", ASCENDING), ("work_date", ASCENDING)],

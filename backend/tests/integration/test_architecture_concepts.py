@@ -132,3 +132,4 @@ async def test_concept_7_security_headers(async_client: AsyncClient):
     assert headers.get("X-XSS-Protection") == "1; mode=block"
     assert "Strict-Transport-Security" in headers
     assert "Content-Security-Policy" in headers
+    assert "X-Request-ID" in headers

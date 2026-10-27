@@ -1,11 +1,12 @@
 import { apiClient } from "./client";
-import type { AttendanceRecord } from "../types";
+import type { AttendanceRecord, TodayAttendanceRecord } from "../types";
 
 export interface CheckInPayload {
   employee_id?: string;
   client_ip?: string;
   latitude?: number;
   longitude?: number;
+  timestamp?: string;
 }
 
 export const attendanceApi = {
@@ -20,16 +21,19 @@ export const attendanceApi = {
     return response.data;
   },
 
-  checkOut: async (employeeId?: string): Promise<{ message: string; attendance: AttendanceRecord }> => {
+  checkOut: async (
+    payload?: string | { employee_id?: string; timestamp?: string }
+  ): Promise<{ message: string; attendance: AttendanceRecord }> => {
+    const body = typeof payload === "string" ? { employee_id: payload } : (payload ?? {});
     const response = await apiClient.post<{ message: string; attendance: AttendanceRecord }>(
       "/attendance/check-out",
-      employeeId ? { employee_id: employeeId } : {}
+      body
     );
     return response.data;
   },
 
-  getToday: async (employeeId?: string): Promise<AttendanceRecord> => {
-    const response = await apiClient.get<AttendanceRecord>("/attendance/today", {
+  getToday: async (employeeId?: string): Promise<TodayAttendanceRecord> => {
+    const response = await apiClient.get<TodayAttendanceRecord>("/attendance/today", {
       params: employeeId ? { employee_id: employeeId } : {},
     });
     return response.data;

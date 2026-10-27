@@ -1,25 +1,40 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback, useMemo } from 'react';
+import { Link } from 'react-router-dom';
 import { useAuth } from '../../auth/AuthContext';
 import { attendanceApi, reportsApi } from '../../api';
-import type { AttendanceRecord, AttendanceReportResponse } from '../../types';
+import { useToast } from '../../context/ToastContext';
+import type { TodayAttendanceRecord, AttendanceReportResponse, AttendanceRecord } from '../../types';
 import { StatCard } from '../../components/common/StatCard';
 import { StatusBadge } from '../../components/common/StatusBadge';
-import { Clock, Calendar, CheckCircle2, AlertTriangle, ArrowRightCircle } from 'lucide-react';
+import { LoadingSkeleton } from '../../components/common/LoadingSkeleton';
+import { EmptyState } from '../../components/common/EmptyState';
+import { WeeklyPolicyProgress, getComplianceState } from '../../components/Dashboard/WeeklyPolicyProgress';
+import {
+  Clock,
+  Calendar,
+  CheckCircle2,
+  ArrowRightCircle,
+  Layers,
+  ArrowUpRight,
+} from 'lucide-react';
 
 export const EmployeeDashboard: React.FC = () => {
   const { user } = useAuth();
-  const [todayRecord, setTodayRecord] = useState<AttendanceRecord | null>(null);
+  const toast = useToast();
+  const [todayRecord, setTodayRecord] = useState<TodayAttendanceRecord | null>(null);
   const [weeklyReport, setWeeklyReport] = useState<AttendanceReportResponse | null>(null);
-  const [, setLoading] = useState(true);
+  const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState(false);
-  const [msg, setMsg] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+  const [elapsedSeconds, setElapsedSeconds] = useState<number>(0);
 
-  const fetchData = async () => {
+  const empId = user?.employee_id || 'EMP001';
+
+  const fetchData = useCallback(async () => {
     try {
       setLoading(true);
       const [todayRes, weekRes] = await Promise.all([
-        attendanceApi.getToday(user?.employee_id || undefined),
-        reportsApi.getReport({ period: 'weekly', employee_id: user?.employee_id || undefined }),
+        attendanceApi.getToday(empId),
+        reportsApi.getReport({ period: 'weekly', employee_id: empId }),
       ]);
       setTodayRecord(todayRes);
       setWeeklyReport(weekRes);
@@ -28,21 +43,46 @@ export const EmployeeDashboard: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [empId]);
 
   useEffect(() => {
     fetchData();
-  }, [user]);
+  }, [fetchData]);
+
+  // Live timer for active session
+  useEffect(() => {
+    const active = todayRecord?.active_session || (todayRecord?.attendance_status === 'IN_PROGRESS' ? todayRecord : null);
+    if (!active || !active.entry_time) {
+      setElapsedSeconds(0);
+      return;
+    }
+
+    const startMs = new Date(active.entry_time).getTime();
+    const update = () => {
+      const diffSec = Math.max(0, Math.floor((Date.now() - startMs) / 1000));
+      setElapsedSeconds(diffSec);
+    };
+
+    update();
+    const timer = setInterval(update, 1000);
+    return () => clearInterval(timer);
+  }, [todayRecord]);
+
+  const formatElapsed = (sec: number) => {
+    const hrs = Math.floor(sec / 3600);
+    const mins = Math.floor((sec % 3600) / 60);
+    return `${hrs}h ${mins}m`;
+  };
 
   const handleCheckIn = async () => {
     try {
       setActionLoading(true);
-      setMsg(null);
-      await attendanceApi.checkIn(user?.employee_id || undefined);
-      setMsg({ type: 'success', text: 'Checked in successfully!' });
+      await attendanceApi.checkIn(empId);
+      toast.success('Checked in successfully!');
       await fetchData();
     } catch (err: any) {
-      setMsg({ type: 'error', text: err?.response?.data?.detail || 'Failed to check in' });
+      const errorMsg = err?.response?.data?.message || err?.response?.data?.detail || 'Failed to check in';
+      toast.error(errorMsg);
     } finally {
       setActionLoading(false);
     }
@@ -51,181 +91,264 @@ export const EmployeeDashboard: React.FC = () => {
   const handleCheckOut = async () => {
     try {
       setActionLoading(true);
-      setMsg(null);
-      await attendanceApi.checkOut(user?.employee_id || undefined);
-      setMsg({ type: 'success', text: 'Checked out successfully!' });
+      await attendanceApi.checkOut({ employee_id: empId });
+      toast.success('Checked out successfully!');
       await fetchData();
     } catch (err: any) {
-      setMsg({ type: 'error', text: err?.response?.data?.detail || 'Failed to check out' });
+      const errorMsg = err?.response?.data?.message || err?.response?.data?.detail || 'Failed to check out';
+      toast.error(errorMsg);
     } finally {
       setActionLoading(false);
     }
   };
-
-  const myCompliance = weeklyReport?.employees.find((e) => e.employee_id === user?.employee_id);
-  const daysAttended = myCompliance?.total_attended_days ?? (todayRecord ? 1 : 0);
-  const hoursAttended = myCompliance?.total_office_hours ?? (todayRecord?.duration_hours || 0);
-  const isCompliant = myCompliance ? myCompliance.overall_compliance === 'COMPLIANT' : (daysAttended >= 3 && hoursAttended >= 15);
 
   const formatTime = (iso?: string | null) => {
     if (!iso) return '—';
     return new Date(iso).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
   };
 
+  const myCompliance = weeklyReport?.employees.find((e) => e.employee_id === empId);
+  const daysAttended = myCompliance?.total_attended_days ?? (todayRecord && todayRecord.duration_hours > 0 ? 1 : 0);
+  const hoursAttended = myCompliance?.total_office_hours ?? (todayRecord?.duration_hours || 0);
+
+  const complianceInfo = useMemo(() => {
+    return getComplianceState(daysAttended, hoursAttended, 3, 15);
+  }, [daysAttended, hoursAttended]);
+
+  const isSessionActive = todayRecord?.attendance_status === 'IN_PROGRESS';
+  const todaySessions: AttendanceRecord[] = useMemo(() => {
+    if (todayRecord?.sessions && todayRecord.sessions.length > 0) {
+      return todayRecord.sessions;
+    }
+    if (todayRecord && todayRecord.attendance_id) {
+      return [todayRecord];
+    }
+    return [];
+  }, [todayRecord]);
+
+  const sessionCount = todayRecord?.total_sessions ?? todaySessions.length;
+
   return (
     <div className="space-y-6">
-      {/* Top Banner */}
-      <div className="bg-gradient-to-r from-blue-600 to-indigo-700 rounded-2xl p-6 text-white shadow-lg flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-        <div>
-          <h1 className="text-2xl font-bold">Welcome back, {user?.username}!</h1>
-          <p className="text-blue-100 text-sm mt-1">
-            Employee ID: <span className="font-semibold">{user?.employee_id || 'N/A'}</span> • Role: {user?.role}
-          </p>
+      {/* Top Welcome & Quick Actions Hero */}
+      <div
+        className={`rounded-2xl border p-6 shadow-xs flex flex-col lg:flex-row justify-between items-start lg:items-center gap-6 transition ${
+          isSessionActive
+            ? 'border-amber-300 bg-gradient-to-r from-amber-50/50 via-white to-white'
+            : 'border-slate-200/90 bg-white'
+        }`}
+      >
+        <div className="space-y-2">
+          <div className="flex flex-wrap items-center gap-2">
+            <h1 className="text-xl font-bold tracking-tight text-slate-900">
+              Welcome back, {user?.username}!
+            </h1>
+            <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-indigo-50 text-indigo-700 border border-indigo-100 uppercase">
+              {user?.role}
+            </span>
+            {isSessionActive && (
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-bold bg-amber-100 text-amber-800 border border-amber-300">
+                <span className="h-2 w-2 rounded-full bg-amber-500 animate-pulse" aria-hidden="true" />
+                Active Session In Progress
+              </span>
+            )}
+          </div>
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-slate-500">
+            <span>
+              Employee ID: <strong className="text-slate-700">{empId}</strong>
+            </span>
+            <span>•</span>
+            <span>
+              Workday: <strong className="text-slate-700">{todayRecord?.work_date || 'Today'}</strong>
+            </span>
+            <span>•</span>
+            {isSessionActive ? (
+              <span className="text-amber-800 font-medium">
+                Live Elapsed: <strong className="font-mono font-bold">{formatElapsed(elapsedSeconds)}</strong>
+              </span>
+            ) : (
+              <span className="text-slate-600">
+                {complianceInfo.state === 'FULLY_COMPLIANT'
+                  ? 'Weekly policy goal achieved ✓'
+                  : `Remaining target: ${complianceInfo.remainingDays > 0 ? `${complianceInfo.remainingDays} eligible day${complianceInfo.remainingDays > 1 ? 's' : ''}` : ''}${complianceInfo.remainingDays > 0 && complianceInfo.remainingHours > 0 ? ' & ' : ''}${complianceInfo.remainingHours > 0 ? `${complianceInfo.remainingHours}h` : ''}`}
+              </span>
+            )}
+          </div>
         </div>
 
-        {/* Action Buttons */}
-        <div className="flex gap-3">
+        {/* Quick Check-in/out Action Area */}
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5 w-full lg:w-auto">
           <button
             onClick={handleCheckIn}
-            disabled={actionLoading || !!todayRecord?.entry_time}
-            className={`px-5 py-2.5 rounded-xl font-medium text-sm flex items-center gap-2 shadow-sm transition ${
-              todayRecord?.entry_time
-                ? 'bg-emerald-500/30 text-emerald-100 cursor-not-allowed border border-emerald-400/40'
-                : 'bg-white text-blue-700 hover:bg-blue-50 active:scale-95'
+            disabled={actionLoading || isSessionActive}
+            aria-label={sessionCount > 0 ? 'Start Next Attendance Session' : 'Check In to Office'}
+            className={`px-4 py-2.5 rounded-xl text-xs font-bold flex items-center justify-center gap-2 shadow-xs transition ${
+              isSessionActive
+                ? 'bg-slate-100 text-slate-400 border border-slate-200 cursor-not-allowed'
+                : 'bg-indigo-600 hover:bg-indigo-700 text-white active:scale-95'
             }`}
           >
             <Clock className="w-4 h-4" />
-            {todayRecord?.entry_time ? 'Checked In' : 'Check In'}
+            <span>{sessionCount > 0 ? 'Start Next Session' : 'Check In'}</span>
           </button>
 
           <button
             onClick={handleCheckOut}
-            disabled={actionLoading || !todayRecord?.entry_time || !!todayRecord?.exit_time}
-            className={`px-5 py-2.5 rounded-xl font-medium text-sm flex items-center gap-2 shadow-sm transition ${
-              todayRecord?.exit_time || !todayRecord?.entry_time
-                ? 'bg-slate-500/20 text-slate-300 cursor-not-allowed border border-white/20'
-                : 'bg-amber-400 text-slate-900 hover:bg-amber-300 active:scale-95'
+            disabled={actionLoading || !isSessionActive}
+            aria-label="Check Out of Office"
+            className={`px-4 py-2.5 rounded-xl text-xs font-bold flex items-center justify-center gap-2 shadow-xs transition ${
+              !isSessionActive
+                ? 'bg-slate-100 text-slate-400 border border-slate-200 cursor-not-allowed'
+                : 'bg-amber-500 hover:bg-amber-600 text-white ring-2 ring-amber-400 ring-offset-1 active:scale-95'
             }`}
           >
             <ArrowRightCircle className="w-4 h-4" />
-            {todayRecord?.exit_time ? 'Checked Out' : 'Check Out'}
+            <span>Check Out</span>
           </button>
         </div>
       </div>
 
-      {msg && (
-        <div
-          className={`p-4 rounded-xl text-sm font-medium flex items-center gap-2 ${
-            msg.type === 'success'
-              ? 'bg-emerald-50 text-emerald-800 border border-emerald-200'
-              : 'bg-rose-50 text-rose-800 border border-rose-200'
-          }`}
-        >
-          {msg.type === 'success' ? <CheckCircle2 className="w-4 h-4" /> : <AlertTriangle className="w-4 h-4" />}
-          {msg.text}
+
+
+      {/* 5 Summary Metric Cards (Section 5 Requirement) */}
+      {loading ? (
+        <LoadingSkeleton variant="stat" count={5} />
+      ) : (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+          <StatCard
+            title="Today's Hours"
+            value={`${(todayRecord?.duration_hours || 0).toFixed(2)}h`}
+            icon={<Clock className="w-5 h-5 text-indigo-600" />}
+            subtitle={isSessionActive ? `+${formatElapsed(elapsedSeconds)} live (finalizes on check-out)` : 'Completed hours today'}
+          />
+          <StatCard
+            title="Today's Sessions"
+            value={`${sessionCount} ${sessionCount === 1 ? 'session' : 'sessions'}`}
+            icon={<Layers className="w-5 h-5 text-blue-600" />}
+            subtitle={isSessionActive ? '1 session currently active' : 'Multi-session enabled'}
+          />
+          <StatCard
+            title="Weekly Hours"
+            value={`${hoursAttended.toFixed(1)} / 15.0h`}
+            variant={hoursAttended >= 15 ? 'success' : 'default'}
+            icon={<CheckCircle2 className="w-5 h-5 text-emerald-600" />}
+            subtitle={isSessionActive ? 'Active session finalizes on check-out' : (complianceInfo.remainingHours > 0 ? `${complianceInfo.remainingHours}h remaining` : 'Target met (>=15h)')}
+          />
+          <StatCard
+            title="Weekly Days"
+            value={`${daysAttended} / 3 days`}
+            variant={daysAttended >= 3 ? 'success' : 'default'}
+            icon={<Calendar className="w-5 h-5 text-violet-600" />}
+            subtitle={complianceInfo.remainingDays > 0 ? `${complianceInfo.remainingDays} day(s) remaining` : 'Target met (>=3d)'}
+          />
+          <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-xs flex flex-col justify-between">
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">
+                Weekly Compliance
+              </p>
+              <div className="mt-2">
+                <span
+                  className={`inline-flex items-center px-2.5 py-1 rounded-md text-xs font-bold border ${
+                    complianceInfo.state === 'FULLY_COMPLIANT'
+                      ? 'bg-emerald-50 text-emerald-800 border-emerald-200'
+                      : complianceInfo.state === 'HOURS_PENDING'
+                      ? 'bg-amber-50 text-amber-800 border-amber-200'
+                      : complianceInfo.state === 'DAYS_PENDING'
+                      ? 'bg-indigo-50 text-indigo-800 border-indigo-200'
+                      : 'bg-slate-100 text-slate-700 border-slate-200'
+                  }`}
+                >
+                  {complianceInfo.label}
+                </span>
+              </div>
+            </div>
+            <p className="mt-2 text-[11px] text-slate-500 line-clamp-2">
+              {complianceInfo.description}
+            </p>
+          </div>
         </div>
       )}
 
-      {/* KPI Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatCard
-          title="Today's Check-in"
-          value={formatTime(todayRecord?.entry_time)}
-          icon={<Clock className="w-5 h-5 text-blue-600" />}
-          subtitle={todayRecord?.entry_time ? 'Office entrance logged' : 'Not recorded yet'}
-        />
-        <StatCard
-          title="Today's Check-out"
-          value={formatTime(todayRecord?.exit_time)}
-          icon={<ArrowRightCircle className="w-5 h-5 text-indigo-600" />}
-          subtitle={todayRecord?.exit_time ? 'Day concluded' : 'Active shift'}
-        />
-        <StatCard
-          title="Weekly Days"
-          value={`${daysAttended} / 3 days`}
-          icon={<Calendar className="w-5 h-5 text-emerald-600" />}
-          subtitle="Policy target: >= 3 days"
-        />
-        <StatCard
-          title="Weekly Hours"
-          value={`${hoursAttended.toFixed(1)} / 15.0 hrs`}
-          icon={<CheckCircle2 className="w-5 h-5 text-violet-600" />}
-          subtitle="Policy target: >= 15.0 hrs"
-        />
-      </div>
+      {/* Weekly Policy Progress Indicators */}
+      <WeeklyPolicyProgress
+        daysAttended={daysAttended}
+        hoursAttended={hoursAttended}
+        requiredDays={3}
+        requiredHours={15}
+        isSessionActive={isSessionActive}
+      />
 
-      {/* Policy Compliance Status */}
-      <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm">
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-lg font-bold text-slate-900">Current Week Policy Compliance</h2>
-          <StatusBadge status={isCompliant ? 'COMPLIANT' : 'NON_COMPLIANT'} />
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div className="p-4 bg-slate-50 rounded-xl border border-slate-100">
-            <div className="flex justify-between items-center mb-2">
-              <span className="text-sm font-medium text-slate-600">Office Attendance Days</span>
-              <span className="text-sm font-bold text-slate-800">{daysAttended} of 3 required</span>
-            </div>
-            <div className="w-full bg-slate-200 rounded-full h-2.5">
-              <div
-                className={`h-2.5 rounded-full transition-all ${
-                  daysAttended >= 3 ? 'bg-emerald-500' : 'bg-amber-500'
-                }`}
-                style={{ width: `${Math.min((daysAttended / 3) * 100, 100)}%` }}
-              />
-            </div>
-            <p className="text-xs text-slate-500 mt-2">
-              {daysAttended >= 3 ? 'Requirement fulfilled' : `${3 - daysAttended} more day(s) required this calendar week`}
+      {/* Today's Session Breakdown Mini-List */}
+      <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-xs space-y-4">
+        <div className="flex justify-between items-center">
+          <div>
+            <h2 className="text-sm font-bold text-slate-900 flex items-center gap-2">
+              <Clock className="w-4 h-4 text-indigo-600" />
+              <span>Today's Sessions Summary</span>
+            </h2>
+            <p className="text-xs text-slate-500 mt-0.5">
+              Detailed list of entrance and exit records for today
             </p>
           </div>
-
-          <div className="p-4 bg-slate-50 rounded-xl border border-slate-100">
-            <div className="flex justify-between items-center mb-2">
-              <span className="text-sm font-medium text-slate-600">Office Working Hours</span>
-              <span className="text-sm font-bold text-slate-800">{hoursAttended.toFixed(1)} of 15.0 required</span>
-            </div>
-            <div className="w-full bg-slate-200 rounded-full h-2.5">
-              <div
-                className={`h-2.5 rounded-full transition-all ${
-                  hoursAttended >= 15 ? 'bg-emerald-500' : 'bg-blue-500'
-                }`}
-                style={{ width: `${Math.min((hoursAttended / 15) * 100, 100)}%` }}
-              />
-            </div>
-            <p className="text-xs text-slate-500 mt-2">
-              {hoursAttended >= 15 ? 'Requirement fulfilled' : `${(15 - hoursAttended).toFixed(1)} hours remaining to comply`}
-            </p>
-          </div>
+          <Link
+            to="/attendance"
+            className="flex items-center gap-1 text-xs font-semibold text-indigo-600 hover:text-indigo-700 transition"
+          >
+            <span>Full Attendance Console</span>
+            <ArrowUpRight className="w-3.5 h-3.5" />
+          </Link>
         </div>
-      </div>
 
-      {/* Today's Detail Card */}
-      <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm">
-        <h2 className="text-lg font-bold text-slate-900 mb-4">Today's Attendance Summary</h2>
-        {todayRecord ? (
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 text-sm">
-            <div className="p-3 bg-slate-50 rounded-lg">
-              <span className="text-slate-500 block text-xs">Date</span>
-              <span className="font-semibold text-slate-800">{todayRecord.work_date}</span>
-            </div>
-            <div className="p-3 bg-slate-50 rounded-lg">
-              <span className="text-slate-500 block text-xs">Check In</span>
-              <span className="font-semibold text-slate-800">{formatTime(todayRecord.entry_time)}</span>
-            </div>
-            <div className="p-3 bg-slate-50 rounded-lg">
-              <span className="text-slate-500 block text-xs">Check Out</span>
-              <span className="font-semibold text-slate-800">{formatTime(todayRecord.exit_time)}</span>
-            </div>
-            <div className="p-3 bg-slate-50 rounded-lg">
-              <span className="text-slate-500 block text-xs">Total Hours</span>
-              <span className="font-semibold text-slate-800">{todayRecord.duration_hours.toFixed(2)} hrs</span>
-            </div>
-          </div>
+        {todaySessions.length === 0 ? (
+          <EmptyState
+            icon={Clock}
+            title="No sessions logged today"
+            description="Clock in to record your office attendance session."
+          />
         ) : (
-          <div className="text-center py-8 text-slate-500">
-            <p>No check-in record for today yet.</p>
-            <p className="text-xs text-slate-400 mt-1">Click the "Check In" button above when you enter the office.</p>
+          <div className="divide-y divide-slate-100 rounded-xl border border-slate-200/80 overflow-hidden">
+            {todaySessions.map((sess, idx) => {
+              const isCurr = sess.attendance_status === 'IN_PROGRESS';
+              return (
+                <div
+                  key={sess.attendance_id || idx}
+                  className={`p-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs transition ${
+                    isCurr ? 'bg-amber-50/40' : 'hover:bg-slate-50/60'
+                  }`}
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="h-7 w-7 rounded-lg bg-indigo-50 text-indigo-700 font-bold flex items-center justify-center text-xs">
+                      #{idx + 1}
+                    </div>
+                    <div>
+                      <p className="font-semibold text-slate-900">
+                        Session {idx + 1}{' '}
+                        {isCurr && (
+                          <span className="text-[10px] font-bold text-amber-700 bg-amber-100 px-1.5 py-0.2 rounded ml-1.5">
+                            Live
+                          </span>
+                        )}
+                      </p>
+                      <p className="text-[11px] text-slate-500">
+                        In: {formatTime(sess.entry_time)} • Out: {formatTime(sess.exit_time)}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-4">
+                    <div className="text-right">
+                      <p className="font-bold text-slate-900">
+                        {isCurr
+                          ? `${formatElapsed(elapsedSeconds)} (live)`
+                          : `${sess.duration_hours.toFixed(2)} hrs (${(sess.duration_minutes || sess.duration_hours * 60).toFixed(0)} min)`}
+                      </p>
+                      <p className="text-[10px] text-slate-400">Duration</p>
+                    </div>
+                    <StatusBadge status={sess.attendance_status} />
+                  </div>
+                </div>
+              );
+            })}
           </div>
         )}
       </div>

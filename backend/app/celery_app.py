@@ -28,6 +28,7 @@ celery_app.conf.update(
     task_time_limit=600,
     task_soft_time_limit=540,
     broker_connection_retry_on_startup=True,
+    task_store_eager_result=True,
     result_expires=86400,  # 24 hours
     task_default_queue="celery",
 )

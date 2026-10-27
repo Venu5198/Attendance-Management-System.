@@ -100,12 +100,12 @@ class ReportService:
         attendance_cursor = self.attendance.find(attendance_query)
         raw_attendance = await attendance_cursor.to_list(length=None)
 
-        # Organize attendance records by employee_id -> work_date -> record
-        attendance_by_emp: dict[str, dict[str, dict]] = defaultdict(dict)
+        # Organize attendance records by employee_id -> work_date -> list of session records
+        attendance_by_emp: dict[str, dict[str, list[dict]]] = defaultdict(lambda: defaultdict(list))
         for doc in raw_attendance:
             emp_id = doc["employee_id"]
             w_date = doc["work_date"]
-            attendance_by_emp[emp_id][w_date] = doc
+            attendance_by_emp[emp_id][w_date].append(doc)
 
         # 5. Build Employee Report Items
         employee_items: list[EmployeeReportItem] = []
@@ -127,22 +127,48 @@ class ReportService:
 
             while curr_date <= range_end:
                 d_str = curr_date.isoformat()
-                record = emp_records.get(d_str)
+                records = emp_records.get(d_str, [])
 
-                if record:
-                    status_val = AttendanceStatus(record.get("attendance_status", AttendanceStatus.NOT_ATTENDED.value))
-                    duration_sec = record.get("duration_seconds", 0) if status_val == AttendanceStatus.COMPLETED else 0
+                if records:
+                    completed_records = [
+                        r for r in records if r.get("attendance_status") == AttendanceStatus.COMPLETED.value
+                    ]
+                    in_progress_records = [
+                        r for r in records if r.get("attendance_status") == AttendanceStatus.IN_PROGRESS.value
+                    ]
+
+                    duration_sec = sum(r.get("duration_seconds", 0) for r in completed_records)
                     duration_hr = round(duration_sec / 3600.0, 2)
 
-                    if status_val == AttendanceStatus.COMPLETED:
+                    if in_progress_records:
+                        status_val = AttendanceStatus.IN_PROGRESS
+                    elif completed_records:
+                        status_val = AttendanceStatus.COMPLETED
+                    else:
+                        status_val = AttendanceStatus.NOT_ATTENDED
+
+                    # Earliest entry time across all sessions on this day
+                    earliest_entry = min(
+                        (r["entry_time"] for r in records if r.get("entry_time")),
+                        default=None,
+                    )
+                    # Latest exit time if no session is currently in progress
+                    latest_exit = None
+                    if not in_progress_records and completed_records:
+                        latest_exit = max(
+                            (r["exit_time"] for r in completed_records if r.get("exit_time")),
+                            default=None,
+                        )
+
+                    if completed_records:
                         emp_range_attended_days += 1
                         emp_range_duration_seconds += duration_sec
 
                     daily_items.append(
                         DailyAttendanceItem(
                             work_date=d_str,
-                            entry_time=record.get("entry_time"),
-                            exit_time=record.get("exit_time"),
+                            entry_time=earliest_entry,
+                            exit_time=latest_exit,
                             duration_seconds=duration_sec,
                             duration_hours=duration_hr,
                             status=status_val,
@@ -165,13 +191,13 @@ class ReportService:
             # Evaluate weekly compliance for all overlapping policy weeks
             weekly_results: list[WeeklyComplianceResult] = []
             for w_start, w_end in overlapping_weeks:
-                # Gather all records for this employee within [w_start, w_end]
+                # Gather all session records for this employee within [w_start, w_end]
                 week_records = []
                 w_curr = w_start
                 while w_curr <= w_end:
                     w_curr_str = w_curr.isoformat()
                     if w_curr_str in emp_records:
-                        week_records.append(emp_records[w_curr_str])
+                        week_records.extend(emp_records[w_curr_str])
                     w_curr += timedelta(days=1)
 
                 w_result = self.policy_service.evaluate_weekly_compliance(

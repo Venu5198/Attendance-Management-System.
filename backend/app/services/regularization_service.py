@@ -71,14 +71,14 @@ class RegularizationService:
 
         if req_date > today:
             raise HTTPException(
-                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
                 detail="Cannot regularize attendance for future dates",
             )
 
         earliest_allowed = today - timedelta(days=14)
         if req_date < earliest_allowed:
             raise HTTPException(
-                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
                 detail=f"Attendance regularization must be submitted within 14 days of the work date (earliest allowable: {earliest_allowed.isoformat()})",
             )
 

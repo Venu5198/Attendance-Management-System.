@@ -57,11 +57,24 @@ export interface AttendanceRecord {
   work_date: string;
   entry_time: string | null;
   exit_time: string | null;
+  check_in_time?: string | null;
+  check_out_time?: string | null;
   duration_seconds: number;
+  duration_minutes?: number;
   duration_hours: number;
   attendance_status: AttendanceStatus;
+  client_ip?: string | null;
+  latitude?: number | null;
+  longitude?: number | null;
   created_at?: string | null;
   updated_at?: string | null;
+}
+
+export interface TodayAttendanceRecord extends AttendanceRecord {
+  total_sessions?: number;
+  completed_sessions?: number;
+  active_session?: AttendanceRecord | null;
+  sessions?: AttendanceRecord[];
 }
 
 export interface RegularizationRequest {
