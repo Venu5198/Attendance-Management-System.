@@ -128,8 +128,16 @@ class AttendanceService:
             active_session = await self.attendance.find_one(
                 {
                     "$or": [
-                        {"tenant_id": self.tenant_id, "employee_id": employee_id, "attendance_status": AttendanceStatus.IN_PROGRESS.value},
-                        {"tenant_id": {"$exists": False}, "employee_id": employee_id, "attendance_status": AttendanceStatus.IN_PROGRESS.value},
+                        {
+                            "tenant_id": self.tenant_id,
+                            "employee_id": employee_id,
+                            "attendance_status": AttendanceStatus.IN_PROGRESS.value,
+                        },
+                        {
+                            "tenant_id": {"$exists": False},
+                            "employee_id": employee_id,
+                            "attendance_status": AttendanceStatus.IN_PROGRESS.value,
+                        },
                     ]
                 }
             )
@@ -196,8 +204,16 @@ class AttendanceService:
             record = await self.attendance.find_one(
                 {
                     "$or": [
-                        {"tenant_id": self.tenant_id, "employee_id": employee_id, "attendance_status": AttendanceStatus.IN_PROGRESS.value},
-                        {"tenant_id": {"$exists": False}, "employee_id": employee_id, "attendance_status": AttendanceStatus.IN_PROGRESS.value},
+                        {
+                            "tenant_id": self.tenant_id,
+                            "employee_id": employee_id,
+                            "attendance_status": AttendanceStatus.IN_PROGRESS.value,
+                        },
+                        {
+                            "tenant_id": {"$exists": False},
+                            "employee_id": employee_id,
+                            "attendance_status": AttendanceStatus.IN_PROGRESS.value,
+                        },
                     ]
                 }
             )
@@ -207,8 +223,18 @@ class AttendanceService:
                 completed_today = await self.attendance.find_one(
                     {
                         "$or": [
-                            {"tenant_id": self.tenant_id, "employee_id": employee_id, "work_date": work_date, "attendance_status": AttendanceStatus.COMPLETED.value},
-                            {"tenant_id": {"$exists": False}, "employee_id": employee_id, "work_date": work_date, "attendance_status": AttendanceStatus.COMPLETED.value},
+                            {
+                                "tenant_id": self.tenant_id,
+                                "employee_id": employee_id,
+                                "work_date": work_date,
+                                "attendance_status": AttendanceStatus.COMPLETED.value,
+                            },
+                            {
+                                "tenant_id": {"$exists": False},
+                                "employee_id": employee_id,
+                                "work_date": work_date,
+                                "attendance_status": AttendanceStatus.COMPLETED.value,
+                            },
                         ]
                     }
                 )

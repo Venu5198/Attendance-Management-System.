@@ -2,12 +2,11 @@
 
 import ipaddress
 import logging
+from uuid import uuid4
 
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.requests import Request
 from starlette.responses import Response
-
-from uuid import uuid4
 
 logger = logging.getLogger(__name__)
 
